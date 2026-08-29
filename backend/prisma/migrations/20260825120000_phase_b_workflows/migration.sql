@@ -1,0 +1,24 @@
+ALTER TYPE "OppositionType" ADD VALUE IF NOT EXISTS 'OTHER';
+ALTER TYPE "ReportStatus" ADD VALUE IF NOT EXISTS 'PUBLIE';
+
+ALTER TABLE "Opposition"
+  ALTER COLUMN "identityStatus" SET DEFAULT 'A_CONFIRMER',
+  ALTER COLUMN "opponentName" DROP NOT NULL,
+  ALTER COLUMN "scope" DROP NOT NULL,
+  ALTER COLUMN "description" DROP NOT NULL,
+  ALTER COLUMN "ancfccStatus" DROP NOT NULL,
+  ALTER COLUMN "courtStatus" DROP NOT NULL,
+  ALTER COLUMN "riskLevel" DROP NOT NULL,
+  ALTER COLUMN "strategy" DROP NOT NULL;
+
+ALTER TABLE "Notification" ADD COLUMN "dedupeKey" TEXT;
+CREATE UNIQUE INDEX "Notification_dedupeKey_key" ON "Notification"("dedupeKey");
+
+ALTER TABLE "Report"
+  ALTER COLUMN "status" SET DEFAULT 'BROUILLON',
+  ADD COLUMN "publishedById" UUID,
+  ADD COLUMN "publishedAt" TIMESTAMP(3);
+
+ALTER TABLE "Report"
+  ADD CONSTRAINT "Report_publishedById_fkey"
+  FOREIGN KEY ("publishedById") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;

@@ -1,0 +1,36 @@
+# Dependencies (kept locally, never versioned)
+**/node_modules/
+
+# Builds and generated test outputs
+**/.next/
+**/.next-e2e/
+**/dist/
+**/out/
+**/coverage/
+frontend/artifacts/
+frontend/playwright-report/
+frontend/test-results/
+*.tsbuildinfo
+
+# Runtime and temporary files
+*.log
+*.tmp
+*.temp
+*.swp
+.DS_Store
+Thumbs.db
+
+# Local environments and secrets
+.env
+.env.*
+**/.env
+**/.env.*
+!.env.example
+!**/.env.example
+.phase-c-qa.env
+
+# Local/private operational data
+backend/storage/
+backend/uploads/
+backend/.generated/
+backend/private-import/

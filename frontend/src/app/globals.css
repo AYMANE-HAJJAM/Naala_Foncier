@@ -1,0 +1,226 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: var(--font-source-sans), "Segoe UI", sans-serif;
+}
+
+:root {
+  /* Ink / navy */
+  --navy-950: #0b1728;
+  --navy-900: #132238;
+  --navy-800: #1a2f45;
+  --navy-700: #243d57;
+
+  /* Accent — muted bronze / sand */
+  --gold-500: #a8894a;
+  --gold-100: #f3eee3;
+  --accent: var(--gold-500);
+  --accent-soft: var(--gold-100);
+
+  /* Text */
+  --slate-950: #1c2430;
+  --slate-700: #3d4654;
+  --slate-500: #5c6570;
+  --slate-400: #8a929c;
+  --slate-300: #c8cdd4;
+  --slate-200: #e6e4de;
+  --slate-100: #f0efeb;
+
+  /* Surfaces */
+  --canvas: #f5f4f0;
+  --surface: #ffffff;
+  --surface-muted: #f8f8f6;
+  --border: #e6e4de;
+
+  /* Status */
+  --success: #1b7a55;
+  --warning: #b56a12;
+  --critical: #b83a3a;
+  --info: #2f5f8a;
+
+  /* Semantic aliases */
+  --text: var(--slate-950);
+  --text-muted: var(--slate-500);
+  --text-faint: var(--slate-400);
+
+  /* Radius — restrained */
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 10px;
+
+  /* Shell */
+  --sidebar-w: 232px;
+  --sidebar-collapsed: 72px;
+  --topbar-h: 64px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  background: var(--canvas);
+}
+
+body {
+  margin: 0;
+  color: var(--text);
+  background: var(--canvas);
+  font-family: var(--font-source-sans), "Segoe UI", sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+button,
+a,
+summary,
+[role="button"],
+label:has(input[type="file"]),
+label:has(input[type="checkbox"]),
+label:has(input[type="radio"]) {
+  cursor: pointer;
+}
+
+button:disabled,
+[aria-disabled="true"],
+input:disabled,
+select:disabled,
+textarea:disabled {
+  cursor: not-allowed;
+}
+
+button,
+a {
+  transition:
+    color 0.15s ease,
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    opacity 0.15s ease,
+    box-shadow 0.15s ease,
+    transform 0.15s ease;
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid rgba(168, 137, 74, 0.45);
+  outline-offset: 2px;
+}
+
+.scrollbar-thin {
+  scrollbar-width: thin;
+  scrollbar-color: var(--slate-300) transparent;
+}
+
+.page-enter {
+  animation: page-in 0.28s ease-out both;
+}
+
+@keyframes page-in {
+  from {
+    opacity: 0.45;
+    transform: translateY(3px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Shared form control */
+.nf-input {
+  height: 40px;
+  width: 100%;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  padding: 0 12px;
+  color: var(--text);
+  font-size: 14px;
+}
+
+/* Unlayered CSS beats Tailwind utilities — keep icon gutter explicit */
+.nf-input.nf-input--icon-left {
+  padding-left: 2.5rem;
+}
+
+.nf-input:hover {
+  border-color: #d4d1c8;
+}
+
+.nf-input:focus {
+  border-color: var(--navy-700);
+}
+
+.nf-label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.nf-meta {
+  font-size: 12px;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+
+.nf-divider {
+  border: 0;
+  border-top: 1px solid var(--border);
+}
+
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  .print-surface {
+    box-shadow: none !important;
+    border: 0 !important;
+  }
+  .app-main {
+    padding: 0 !important;
+  }
+  .page-enter {
+    animation: none;
+  }
+
+  body.printing-docx * {
+    visibility: hidden !important;
+  }
+  body.printing-docx .docx-print-root,
+  body.printing-docx .docx-print-root * {
+    visibility: visible !important;
+  }
+  body.printing-docx .file-preview-chrome {
+    display: none !important;
+  }
+  body.printing-docx .docx-viewer-scroll {
+    overflow: visible !important;
+    background: white !important;
+    position: static !important;
+  }
+  body.printing-docx .docx-print-root {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100% !important;
+    transform: none !important;
+  }
+  body.printing-docx .docx-host .docx {
+    box-shadow: none !important;
+    margin: 0 0 12mm !important;
+    page-break-after: always;
+  }
+}
