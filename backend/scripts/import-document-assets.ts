@@ -232,7 +232,7 @@ export async function importDocuments(prisma: PrismaClient, manifest: AssetsMani
     log("(dry-run) Would dedupe duplicate portfolio RAPPORTS Document rows");
   }
   const admin = await prisma.user.findFirst({
-    where: { email: "admin@naala-foncier.ma", deletedAt: null },
+    where: { isActive: true, deletedAt: null, roles: { some: { role: { key: "ADMIN" } } } },
   });
   if (!admin) throw new Error("Admin user missing");
 
@@ -333,7 +333,7 @@ export async function importDocuments(prisma: PrismaClient, manifest: AssetsMani
         uploadedAt: new Date(),
         notes: `${fingerprintNote(a.fingerprint)} | slides:${a.sourceSlide} | presentation:${a.sourcePresentation}`,
         cloudinaryPublicId: publicId,
-        cloudinaryAssetId: result.asset_id ?? null,
+        cloudinaryAssetId: typeof result.asset_id === "string" ? result.asset_id : null,
         cloudinaryVersion: result.version ? String(result.version) : null,
         cloudinaryResourceType: result.resource_type ?? "image",
         cloudinaryDeliveryType: "authenticated",
@@ -412,7 +412,7 @@ export async function importJudicialEvents(
           nextAction: h.nextAction ?? "Compte rendu ou nouvelle situation à renseigner",
           visibility: "PARTAGE",
           createdById: (
-            await prisma.user.findFirst({ where: { email: "admin@naala-foncier.ma" } })
+            await prisma.user.findFirst({ where: { isActive: true, deletedAt: null, roles: { some: { role: { key: "ADMIN" } } } } })
           )?.id,
         },
       });

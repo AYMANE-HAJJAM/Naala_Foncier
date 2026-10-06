@@ -5,7 +5,7 @@ import { ExtractJwt, Strategy } from "passport-jwt";
 import { PrismaService } from "../database/prisma.service.js";
 import type { AuthUser } from "./auth-user.js";
 
-interface JwtPayload { sub: string; email: string }
+interface JwtPayload { sub: string; email: string; sessionId?: string }
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
@@ -15,6 +15,14 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     super({ jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(), ignoreExpiration: false, secretOrKey: config.getOrThrow<string>("JWT_ACCESS_SECRET") });
   }
   async validate(payload: JwtPayload): Promise<AuthUser> {
+    if (!payload.sessionId) throw new UnauthorizedException("Session invalide.");
+    const session = await this.prisma.refreshToken.findUnique({
+      where: { id: payload.sessionId },
+      select: { userId: true, revokedAt: true, expiresAt: true },
+    });
+    if (!session || session.userId !== payload.sub || session.revokedAt || session.expiresAt <= new Date()) {
+      throw new UnauthorizedException("Session invalide.");
+    }
     const user = await this.prisma.user.findUnique({ where: { id: payload.sub }, include: { roles: { include: { role: { include: { permissions: { include: { permission: true } } } } } } } });
     if (!user || !user.isActive || user.deletedAt) {
       this.logger.warn(`Protected request denied for inactive or missing user ${payload.sub}`);

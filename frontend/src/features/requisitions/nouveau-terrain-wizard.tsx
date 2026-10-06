@@ -13,9 +13,16 @@ import {
 } from "lucide-react";
 import { Dialog } from "@/components/ui/core";
 import { Button } from "@/components/ui/button";
-import { ApiError } from "@/lib/api/fetcher";
 import { formatFileSize } from "@/lib/documents";
 import { mimeFromName, maxUploadBytes } from "@/lib/api/mappers";
+import { uiErrorMessage as errorMessage } from "@/lib/api/error-message";
+import {
+  DOCUMENT_CATEGORIES as CATEGORIES,
+  documentCategoryNumberedLabel as categoryLabel,
+  documentCategoryShortLabel as categoryShort,
+  normalizeCategoryName as normalizeCustomName,
+  type StandardDocumentCategory as StandardCategoryKey,
+} from "@/lib/domain/document-categories";
 import {
   analyzeTerrainDraft,
   cancelTerrainDraft,
@@ -36,42 +43,12 @@ import {
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
-const CATEGORIES = [
-  { key: "FICHE_SYNTHESE", label: "01 — Fiche synthèse", short: "Fiche synthèse" },
-  { key: "ANCFCC", label: "02 — ANCFCC", short: "ANCFCC" },
-  { key: "ACTES", label: "03 — Actes", short: "Actes" },
-  { key: "OPPOSITIONS", label: "04 — Oppositions", short: "Oppositions" },
-  { key: "TRIBUNAL", label: "05 — Tribunal", short: "Tribunal" },
-  { key: "TOPOGRAPHIE", label: "06 — Topographie", short: "Topographie" },
-  { key: "TERRAIN", label: "07 — Terrain", short: "Terrain" },
-  { key: "CORRESPONDANCES", label: "08 — Correspondances", short: "Correspondances" },
-] as const;
-
 const CUSTOM_CATEGORY_MAX = 80;
 
-type StandardCategoryKey = (typeof CATEGORIES)[number]["key"];
 type CategoryKey = StandardCategoryKey | "AUTRE";
 
 const ACCEPT =
   ".pdf,.docx,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png,application/vnd.openxmlformats-officedocument.wordprocessingml.document";
-
-function categoryMeta(key: string) {
-  return CATEGORIES.find((c) => c.key === key);
-}
-
-function categoryLabel(key: string, customName?: string | null) {
-  if (key === "AUTRE") return customName?.trim() || "Autre";
-  return categoryMeta(key)?.label ?? key;
-}
-
-function categoryShort(key: string, customName?: string | null) {
-  if (key === "AUTRE") return customName?.trim() || "Autre";
-  return categoryMeta(key)?.short ?? key;
-}
-
-function normalizeCustomName(raw: string) {
-  return raw.trim().replace(/\s+/g, " ");
-}
 
 function sectionKey(section: { category: string; customCategoryName: string }) {
   if (section.category === "AUTRE") {
@@ -90,15 +67,6 @@ let pendingSeq = 0;
 function newPendingId() {
   pendingSeq += 1;
   return `up_${pendingSeq}`;
-}
-
-function errorMessage(e: unknown): string {
-  if (e instanceof ApiError) {
-    const code = e.code ? `[${e.code}] ` : "";
-    return `${code}${e.message}`;
-  }
-  if (e instanceof Error) return e.message;
-  return "Erreur inattendue";
 }
 
 function isAllowedFile(file: File) {
@@ -147,6 +115,7 @@ type Props = {
 };
 
 export function NouveauTerrainWizard({ open, onOpenChange, onCreated }: Props) {
+  const analysisPollGeneration = useRef(0);
   const [step, setStep] = useState<1 | 2>(1);
   const [draft, setDraft] = useState<TerrainDraftDto | null>(null);
   const [sections, setSections] = useState<CategorySection[]>([
@@ -182,6 +151,7 @@ export function NouveauTerrainWizard({ open, onOpenChange, onCreated }: Props) {
   const [conflictChoices, setConflictChoices] = useState<Record<string, string>>({});
 
   const reset = useCallback(() => {
+    analysisPollGeneration.current += 1;
     setStep(1);
     setDraft(null);
     setSections([{ id: newSectionId(), category: "", customCategoryName: "" }]);
@@ -239,6 +209,7 @@ export function NouveauTerrainWizard({ open, onOpenChange, onCreated }: Props) {
     })();
     return () => {
       cancelled = true;
+      analysisPollGeneration.current += 1;
     };
   }, [open, onOpenChange]);
 
@@ -264,6 +235,7 @@ export function NouveauTerrainWizard({ open, onOpenChange, onCreated }: Props) {
       onOpenChange(true);
       return;
     }
+    analysisPollGeneration.current += 1;
     if (draft && draft.status !== "CONFIRMED") {
       try {
         await cancelTerrainDraft(draft.id);
@@ -599,9 +571,14 @@ export function NouveauTerrainWizard({ open, onOpenChange, onCreated }: Props) {
   };
 
   const pollAnalysis = async (draftId: string) => {
+    const generation = ++analysisPollGeneration.current;
     const started = Date.now();
-    while (Date.now() - started < 180_000) {
+    while (
+      generation === analysisPollGeneration.current &&
+      Date.now() - started < 180_000
+    ) {
       const status = await getTerrainDraftAnalysis(draftId);
+      if (generation !== analysisPollGeneration.current) return;
       setAnalysisPhase(status.phase ?? status.status);
       if (status.status === "COMPLETED") {
         const refreshed = await getTerrainDraft(draftId);
@@ -630,6 +607,7 @@ export function NouveauTerrainWizard({ open, onOpenChange, onCreated }: Props) {
       }
       await new Promise((r) => setTimeout(r, 2000));
     }
+    if (generation !== analysisPollGeneration.current) return;
     setAnalyzing(false);
     setAnalysisError("L’analyse automatique n’a pas pu être terminée.");
   };
@@ -827,10 +805,10 @@ export function NouveauTerrainWizard({ open, onOpenChange, onCreated }: Props) {
       }
       size="wizard"
     >
-      <div className="mb-5 flex items-center gap-2 text-[12px] font-semibold">
+      <div className="mb-6 grid grid-cols-[1fr_auto_1fr] items-center gap-3 rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface-muted)] p-2 text-[12px] font-semibold">
         <span
           className={cn(
-            "rounded-full px-2.5 py-1",
+            "flex items-center justify-center rounded-[var(--radius-md)] px-3 py-2.5",
             step === 1
               ? "bg-[var(--navy-950)] text-white"
               : "bg-[var(--surface-muted)] text-[var(--text-muted)]",
@@ -838,10 +816,10 @@ export function NouveauTerrainWizard({ open, onOpenChange, onCreated }: Props) {
         >
           1. Pièces sources
         </span>
-        <span className="text-[var(--text-faint)]">→</span>
+        <span className="h-px w-5 bg-[var(--border-strong)]" />
         <span
           className={cn(
-            "rounded-full px-2.5 py-1",
+            "flex items-center justify-center rounded-[var(--radius-md)] px-3 py-2.5",
             step === 2
               ? "bg-[var(--navy-950)] text-white"
               : "bg-[var(--surface-muted)] text-[var(--text-muted)]",
@@ -852,7 +830,7 @@ export function NouveauTerrainWizard({ open, onOpenChange, onCreated }: Props) {
       </div>
 
       {step === 1 ? (
-        <div className="space-y-4">
+        <div className="space-y-5">
           <div>
             <h3 className="text-[15px] font-semibold text-[var(--navy-950)]">
               Pièces sources
@@ -897,7 +875,7 @@ export function NouveauTerrainWizard({ open, onOpenChange, onCreated }: Props) {
           {canAddCategory ? (
             <button
               type="button"
-              className="inline-flex items-center gap-1.5 text-[13px] font-medium text-[var(--navy-900)] hover:underline disabled:opacity-50"
+              className="inline-flex h-10 items-center gap-1.5 rounded-[var(--radius-md)] border border-[var(--border-strong)] bg-white px-3.5 text-[13px] font-semibold text-[var(--navy-900)] shadow-[var(--shadow-xs)] transition hover:bg-[var(--surface-muted)] disabled:opacity-50"
               disabled={busy || !draft}
               onClick={addCategorySection}
             >
@@ -907,7 +885,7 @@ export function NouveauTerrainWizard({ open, onOpenChange, onCreated }: Props) {
           ) : null}
 
           {analyzing ? (
-            <div className="rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface-muted)]/40 px-4 py-4 text-[13px]">
+            <div className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface-muted)] px-5 py-5 text-[13px] shadow-[var(--shadow-xs)]">
               <p className="font-semibold text-[var(--navy-950)]">
                 Analyse des documents
               </p>
@@ -998,7 +976,7 @@ export function NouveauTerrainWizard({ open, onOpenChange, onCreated }: Props) {
           </div>
         </div>
       ) : (
-        <div className="space-y-5">
+        <div className="nf-review-stack space-y-5">
           {analysisNote ? (
             <p className="rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface-muted)] px-4 py-3 text-[13px]">
               {analysisNote}
@@ -1368,8 +1346,8 @@ function CategorySectionBlock({
   };
 
   return (
-    <section className="rounded-[var(--radius-md)] border border-[var(--border)] bg-white">
-      <div className="flex items-center justify-between gap-3 border-b border-[var(--border)] px-3 py-2">
+    <section className="overflow-hidden rounded-[var(--radius-lg)] border border-[var(--border)] bg-white shadow-[var(--shadow-xs)] transition-colors hover:border-[var(--border-strong)]">
+      <div className="flex items-center justify-between gap-3 border-b border-[var(--border)] bg-[var(--surface-muted)] px-4 py-3">
         {hasCategory && hasFiles && (!isAutre || customReady) ? (
           isAutre ? (
             <input
@@ -1405,7 +1383,7 @@ function CategorySectionBlock({
             <option value="">Choisir une catégorie…</option>
             {options.map((c) => (
               <option key={c.key} value={c.key}>
-                {c.label}
+                {c.code} — {c.label}
               </option>
             ))}
             <option value="AUTRE">Autre</option>
@@ -1421,7 +1399,7 @@ function CategorySectionBlock({
         </button>
       </div>
 
-      <div className="px-3 py-2">
+      <div className="px-4 py-3">
         {isAutre && !hasFiles ? (
           <label className="mb-2 block text-[12px] text-[var(--text-muted)]">
             Nom de la catégorie

@@ -148,11 +148,6 @@ function unwrap<T>(payload: unknown): T {
   return payload as T;
 }
 
-export async function getRequisitionEvents(requisitionId: string) {
-  const res = await customFetcher(`/api/requisitions/${requisitionId}/events`);
-  return unwrap<TerrainEventDto[]>(res);
-}
-
 export async function createTerrainEvent(body: {
   requisitionId: string;
   type: string;
@@ -167,19 +162,6 @@ export async function createTerrainEvent(body: {
     body: JSON.stringify(body),
   });
   return unwrap(res);
-}
-
-export async function getCalendarEvents(from?: string, to?: string) {
-  const q = new URLSearchParams();
-  if (from) q.set("from", from);
-  if (to) q.set("to", to);
-  const res = await customFetcher(`/api/calendar/events?${q.toString()}`);
-  return unwrap<TerrainEventDto[]>(res);
-}
-
-export async function getUpcomingEvents(days = 30) {
-  const res = await customFetcher(`/api/calendar/upcoming?days=${days}`);
-  return unwrap<TerrainEventDto[]>(res);
 }
 
 export async function createTerrainDraft() {
@@ -478,32 +460,4 @@ export async function rejectRequisitionAiProposal(
     { method: "POST", body: JSON.stringify({}) },
   );
   return unwrap(res);
-}
-
-export async function getDocumentAnalysisStatus(
-  requisitionId: string,
-  documentId: string,
-) {
-  const res = await customFetcher<DocumentAnalysisStatusDto>(
-    `/api/requisitions/${requisitionId}/documents/${documentId}/analysis-status`,
-  );
-  return unwrap<DocumentAnalysisStatusDto>(res);
-}
-
-export async function retryDocumentAnalysis(
-  requisitionId: string,
-  documentId: string,
-) {
-  const res = await customFetcher<{ analysisRunId: string; status: string }>(
-    `/api/requisitions/${requisitionId}/documents/${documentId}/analyze`,
-    { method: "POST", body: JSON.stringify({}) },
-  );
-  return unwrap(res);
-}
-
-export async function getPendingAiProposalsCount() {
-  const res = await customFetcher<{ count: number }>(
-    `/api/admin/ai-proposals/pending-count`,
-  );
-  return unwrap<{ count: number }>(res);
 }

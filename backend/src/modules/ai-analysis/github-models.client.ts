@@ -56,10 +56,9 @@ export async function githubModelsChatCompletion(
     }
 
     if (!res.ok) {
-      const detail = await safeErrorBody(res);
       throw new DocumentAnalysisProviderError(
         "AI_ANALYSIS_FAILED",
-        `Le service d’analyse a renvoyé une erreur (${res.status}).${detail ? ` ${detail}` : ""}`,
+        `Le service d’analyse a renvoyé une erreur (${res.status}).`,
       );
     }
 
@@ -88,19 +87,6 @@ export async function githubModelsChatCompletion(
     );
   } finally {
     clearTimeout(timer);
-  }
-}
-
-async function safeErrorBody(res: Response): Promise<string | null> {
-  try {
-    const body = (await res.json()) as { error?: { message?: string } };
-    const msg = body.error?.message?.trim();
-    if (!msg) return null;
-    // Never surface token-like strings in error messages.
-    if (/bearer|api[_-]?key|token/i.test(msg)) return null;
-    return msg.slice(0, 200);
-  } catch {
-    return null;
   }
 }
 

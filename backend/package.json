@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
+  "engines": {
+    "node": "24.x"
+  },
   "scripts": {
     "start": "node dist/main.js",
     "dev": "nest start --watch",
@@ -11,12 +14,11 @@
     "typecheck": "tsc --noEmit",
     "lint": "eslint \"src/**/*.ts\" \"test/**/*.ts\"",
     "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js --runInBand",
-    "test:e2e": "jest --config test/jest-e2e.json --runInBand",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "prisma:migrate:deploy": "prisma migrate deploy",
     "prisma:seed": "tsx prisma/seed.ts",
-    "auth:reset-admin": "tsx scripts/reset-initial-admin-password.ts",
+    "admin:setup": "tsx scripts/set-primary-admin.ts",
     "db:generate": "npm run prisma:generate",
     "db:migrate": "npm run prisma:migrate",
     "db:migrate:deploy": "npm run prisma:migrate:deploy",
@@ -64,12 +66,11 @@
     "nestjs-pino": "^4.6.1",
     "passport": "^0.7.0",
     "passport-jwt": "^4.0.1",
-    "pdf-to-img": "^6.2.0",
+    "pdf-to-img": "^7.0.0",
     "pdfjs-dist": "^6.2.108",
     "pg": "^8.22.0",
     "pino": "^10.3.1",
     "pino-http": "^11.0.0",
-    "prisma": "^7.8.0",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.2",
     "zod": "^4.4.3"
@@ -78,18 +79,16 @@
     "@eslint/js": "^9.39.5",
     "@nestjs/cli": "^11.0.24",
     "@nestjs/schematics": "^11.1.0",
-    "@nestjs/testing": "^11.1.28",
     "@types/cookie-parser": "^1.4.10",
     "@types/jest": "^30.0.0",
     "@types/passport-jwt": "^4.0.1",
     "@types/pg": "^8.20.0",
-    "@types/supertest": "^7.2.1",
     "eslint": "^9.39.5",
     "jest": "^30.4.2",
-    "supertest": "^7.2.2",
     "ts-jest": "^29.4.11",
     "tsx": "^4.23.1",
     "typescript": "^5.9.3",
-    "typescript-eslint": "^8.68.0"
+    "typescript-eslint": "^8.68.0",
+    "prisma": "^7.8.0"
   }
 }

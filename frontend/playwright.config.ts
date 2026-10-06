@@ -17,10 +17,18 @@ function readEnv(path: string) {
 
 const qa = readEnv(resolve(__dirname, "../.phase-c-qa.env"));
 Object.assign(process.env, qa);
-const authOnly = process.argv.some((argument) => argument.includes("auth.spec"));
+const authOnly =
+  process.env.npm_lifecycle_event === "test:e2e:auth" ||
+  process.argv.some((argument) => argument.includes("auth.spec"));
+const apiPort = authOnly ? 3101 : 3201;
+const webPort = authOnly ? 3100 : 3200;
+const apiUrl = `http://localhost:${apiPort}`;
+const webUrl = `http://localhost:${webPort}`;
+process.env.E2E_API_BASE_URL = `${apiUrl}/api`;
 const definedProcessEnv = Object.fromEntries(
   Object.entries(process.env).filter((entry): entry is [string, string] => entry[1] !== undefined),
 );
+const npmCommand = process.platform === "win32" ? "npm.cmd" : "npm";
 
 export default defineConfig({
   testDir: "./e2e",
@@ -30,22 +38,23 @@ export default defineConfig({
   expect: { timeout: 10_000 },
   reporter: [["list"], ["html", { open: "never" }]],
   use: {
-    baseURL: "http://localhost:3100",
+    baseURL: webUrl,
     trace: "retain-on-failure",
     screenshot: "only-on-failure",
     video: "retain-on-failure",
   },
   webServer: [
     {
-      command: "npm.cmd --prefix ../backend run dev",
-      url: "http://localhost:3101/api/openapi.json",
+      // A built server is stable even when local audit scripts update JSON files.
+      command: `${npmCommand} --prefix ../backend run build && ${npmCommand} --prefix ../backend start`,
+      url: `${apiUrl}/api/openapi.json`,
       timeout: 120_000,
       reuseExistingServer: false,
       env: {
         ...definedProcessEnv,
         ...qa,
-        API_PORT: "3101",
-        WEB_ORIGIN: "http://localhost:3100",
+        API_PORT: String(apiPort),
+        WEB_ORIGIN: webUrl,
         EXPECTED_DATABASE_SCHEMA: qa.QA_SCHEMA,
         EXPECTED_DATABASE_NAME: qa.QA_DATABASE,
         SWAGGER_ENABLED: "true",
@@ -54,13 +63,14 @@ export default defineConfig({
       },
     },
     {
-      command: "npm.cmd run dev -- -p 3100",
-      url: "http://localhost:3100/login",
+      // Run suites successively: the shared QA build must have only one writer.
+      command: `${npmCommand} run dev -- -p ${webPort}`,
+      url: `${webUrl}/login`,
       timeout: 120_000,
       reuseExistingServer: false,
       env: {
         ...definedProcessEnv,
-        API_INTERNAL_URL: "http://localhost:3101",
+        API_INTERNAL_URL: apiUrl,
         NEXT_DIST_DIR: ".next-e2e",
       },
     },

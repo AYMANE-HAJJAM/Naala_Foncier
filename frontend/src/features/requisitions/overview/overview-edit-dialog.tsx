@@ -10,6 +10,7 @@ import type { Requisition } from "@/types/domain";
 import { Dialog } from "@/components/ui/core";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import { uiErrorMessage } from "@/lib/api/error-message";
 
 type OverviewEditDialogProps = {
   r: Requisition;
@@ -41,18 +42,34 @@ export function OverviewEditDialog({
   const qc = useQueryClient();
   const update = useUpdateRequisition();
   const [statusLabel, setStatusLabel] = useState(r.status || "");
-  const [situation, setSituation] = useState(r.currentSituation ?? r.issue ?? "");
-  const [latestEvent, setLatestEvent] = useState(r.latestKnownEvent ?? r.event ?? "");
-  const [latestEventAt, setLatestEventAt] = useState(r.latestKnownEventAt ?? "");
+  const [situation, setSituation] = useState(
+    r.currentSituation ?? r.issue ?? "",
+  );
+  const [latestEvent, setLatestEvent] = useState(
+    r.latestKnownEvent ?? r.event ?? "",
+  );
+  const [latestEventAt, setLatestEventAt] = useState(
+    r.latestKnownEventAt ?? "",
+  );
   const [eventResult, setEventResult] = useState(r.eventResult ?? "");
   const [courtReached, setCourtReached] = useState(
-    r.courtReached === "Oui" ? "Oui" : r.courtReached === "Non" ? "Non" : "À confirmer",
+    r.courtReached === "Oui"
+      ? "Oui"
+      : r.courtReached === "Non"
+        ? "Non"
+        : "À confirmer",
   );
-  const [judicialEvent, setJudicialEvent] = useState(r.latestJudicialEvent ?? "");
-  const [judicialEventAt, setJudicialEventAt] = useState(r.latestJudicialEventAt ?? "");
+  const [judicialEvent, setJudicialEvent] = useState(
+    r.latestJudicialEvent ?? "",
+  );
+  const [judicialEventAt, setJudicialEventAt] = useState(
+    r.latestJudicialEventAt ?? "",
+  );
   const [judicialResult, setJudicialResult] = useState(r.judicialResult ?? "");
   const [nextDate, setNextDate] = useState(r.nextScheduledEventAt ?? "");
-  const [freshness, setFreshness] = useState(r.dataFreshness ?? "Situation à actualiser");
+  const [freshness, setFreshness] = useState(
+    r.dataFreshness ?? "Situation à actualiser",
+  );
   const [points, setPoints] = useState(
     (r.pointsToClarify ?? r.constraints ?? r.criticalDetails ?? []).join("\n"),
   );
@@ -81,8 +98,8 @@ export function OverviewEditDialog({
       await qc.invalidateQueries({ queryKey: getGetRequisitionQueryKey(r.id) });
       toast.success("Situation factuelle mise à jour");
       onOpenChange(false);
-    } catch {
-      toast.error("Impossible d’enregistrer");
+    } catch (error) {
+      toast.error(uiErrorMessage(error, "Impossible d’enregistrer"));
     }
   };
 

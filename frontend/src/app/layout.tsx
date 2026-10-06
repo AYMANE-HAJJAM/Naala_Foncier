@@ -21,7 +21,12 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="fr" className={sourceSans.variable} suppressHydrationWarning>
+    <html
+      lang="fr"
+      className={sourceSans.variable}
+      data-scroll-behavior="smooth"
+      suppressHydrationWarning
+    >
       <body className="font-sans antialiased" suppressHydrationWarning>
         <Providers>{children}</Providers>
       </body>

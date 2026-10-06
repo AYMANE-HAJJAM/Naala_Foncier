@@ -19,7 +19,7 @@ export function PageHeader({
   return (
     <header
       className={cn(
-        "mb-7 flex flex-col justify-between gap-4 md:flex-row md:items-end",
+        "mb-8 flex flex-col justify-between gap-5 md:flex-row md:items-end",
         className,
       )}
     >
@@ -32,11 +32,11 @@ export function PageHeader({
             </Link>
           </Button>
         )}
-        <h1 className="text-[28px] font-semibold tracking-tight text-[var(--navy-950)] leading-tight">
+        <h1 className="text-[27px] font-semibold tracking-[-0.025em] text-[var(--navy-950)] leading-tight sm:text-[31px]">
           {title}
         </h1>
         {subtitle && (
-          <p className="mt-1.5 max-w-2xl text-[14px] leading-6 text-[var(--text-muted)]">
+          <p className="mt-2 max-w-2xl text-[14px] leading-6 text-[var(--text-muted)]">
             {subtitle}
           </p>
         )}
@@ -56,7 +56,7 @@ export function Breadcrumbs({
   return (
     <nav
       aria-label="Fil d’Ariane"
-      className="mb-3 flex flex-wrap items-center gap-1 text-[12px] text-[var(--text-muted)]"
+      className="mb-4 flex flex-wrap items-center gap-1.5 text-[12px] text-[var(--text-muted)]"
     >
       {items.map((item, i) => (
         <span key={`${item.label}-${i}`} className="flex items-center gap-1">
@@ -93,13 +93,13 @@ export function SectionHeader({
   return (
     <div
       className={cn(
-        "flex items-start justify-between gap-3 px-5 py-4",
+        "flex items-start justify-between gap-3 px-5 py-4.5 sm:px-6",
         bordered && "border-b border-[var(--border)]",
         className,
       )}
     >
       <div className="min-w-0">
-        <h2 className="text-[17px] font-semibold text-[var(--navy-950)] leading-snug">
+        <h2 className="text-[17px] font-semibold tracking-[-0.015em] text-[var(--navy-950)] leading-snug">
           {title}
         </h2>
         {subtitle && (

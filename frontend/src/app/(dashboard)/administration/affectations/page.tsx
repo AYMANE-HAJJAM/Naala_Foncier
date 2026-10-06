@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useGetRequisitions, useGetUsers } from "@/generated/api/naala";
 import type { Requisition, UserItem } from "@/types/domain";
 import { PageHeader } from "@/components/shared/page";
@@ -12,6 +13,8 @@ import {
   revokeRequisitionAccess,
 } from "@/lib/api/phase1";
 import { toast } from "sonner";
+import { domainQueryKeys } from "@/lib/api/query-keys";
+import { uiErrorMessage } from "@/lib/api/error-message";
 
 type AccessRow = {
   userId: string;
@@ -19,16 +22,18 @@ type AccessRow = {
 };
 
 export default function AffectationsPage() {
+  const queryClient = useQueryClient();
   const reqQuery = useGetRequisitions();
   const usersQuery = useGetUsers();
   const terrains = ((reqQuery.data?.data ?? []) as Requisition[]).filter(
     (r) => r.isPrincipal !== false && r.number !== "R 16605/31",
   );
-  const users = (usersQuery.data?.data ?? []) as UserItem[];
+  const users = useMemo(
+    () => (usersQuery.data?.data ?? []) as UserItem[],
+    [usersQuery.data?.data],
+  );
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const effectiveSelectedId = selectedId ?? terrains[0]?.id ?? "";
-  const [access, setAccess] = useState<AccessRow[]>([]);
-  const [loadingAccess, setLoadingAccess] = useState(false);
   const [userId, setUserId] = useState("");
 
   const selected = useMemo(
@@ -36,30 +41,44 @@ export default function AffectationsPage() {
     [terrains, effectiveSelectedId],
   );
 
-  useEffect(() => {
-    if (!effectiveSelectedId) return;
-    let cancelled = false;
-    (async () => {
-      setLoadingAccess(true);
-      try {
-        const rows = await getRequisitionAccess(effectiveSelectedId);
-        if (!cancelled) setAccess(Array.isArray(rows) ? rows : []);
-      } catch {
-        if (!cancelled) {
-          setAccess([]);
-          toast.error("Impossible de charger les affectations");
-        }
-      } finally {
-        if (!cancelled) setLoadingAccess(false);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [effectiveSelectedId]);
+  const accessQuery = useQuery({
+    queryKey: domainQueryKeys.requisitionAccess(effectiveSelectedId),
+    queryFn: () => getRequisitionAccess(effectiveSelectedId),
+    enabled: Boolean(effectiveSelectedId),
+    select: (rows): AccessRow[] => (Array.isArray(rows) ? rows : []),
+  });
+  const access = useMemo(() => accessQuery.data ?? [], [accessQuery.data]);
 
-  const assignedIds = new Set(access.map((a) => a.userId));
-  const assignable = users.filter((u) => !assignedIds.has(u.id));
+  const revokeMutation = useMutation({
+    mutationFn: (targetUserId: string) =>
+      revokeRequisitionAccess(effectiveSelectedId, targetUserId),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({
+        queryKey: domainQueryKeys.requisitionAccess(effectiveSelectedId),
+      });
+      toast.success("Accès retiré");
+    },
+    onError: (error) => toast.error(uiErrorMessage(error, "Échec du retrait d’accès")),
+  });
+
+  const grantMutation = useMutation({
+    mutationFn: (targetUserId: string) =>
+      grantRequisitionAccess(effectiveSelectedId, targetUserId),
+    onSuccess: async () => {
+      setUserId("");
+      await queryClient.invalidateQueries({
+        queryKey: domainQueryKeys.requisitionAccess(effectiveSelectedId),
+      });
+      toast.success("Terrain affecté");
+    },
+    onError: (error) => toast.error(uiErrorMessage(error, "Échec de l’affectation")),
+  });
+
+  const assignedIds = useMemo(() => new Set(access.map((row) => row.userId)), [access]);
+  const assignable = useMemo(
+    () => users.filter((user) => !assignedIds.has(user.id)),
+    [assignedIds, users],
+  );
 
   return (
     <>
@@ -73,14 +92,14 @@ export default function AffectationsPage() {
       ) : terrains.length === 0 ? (
         <EmptyState title="Aucun terrain" description="Créez d’abord un terrain." />
       ) : (
-        <div className="grid gap-6 lg:grid-cols-[280px_1fr]">
-          <div className="space-y-1">
+        <div className="grid gap-6 lg:grid-cols-[300px_1fr]">
+          <div className="nf-panel space-y-1 p-2">
             {terrains.map((t) => (
               <button
                 key={t.id}
                 type="button"
                 onClick={() => setSelectedId(t.id)}
-                className={`w-full rounded-[var(--radius-md)] px-3 py-2.5 text-left text-[13px] transition ${
+                className={`w-full rounded-[var(--radius-md)] px-3.5 py-3 text-left text-[13px] transition ${
                   effectiveSelectedId === t.id
                     ? "bg-[var(--navy-950)] text-white"
                     : "hover:bg-[var(--surface-muted)] text-[var(--text)]"
@@ -92,7 +111,7 @@ export default function AffectationsPage() {
             ))}
           </div>
 
-          <div className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] p-5">
+          <div className="nf-panel-raised p-5 sm:p-6">
             {selected ? (
               <>
                 <h2 className="text-[16px] font-semibold text-[var(--navy-950)]">
@@ -102,7 +121,7 @@ export default function AffectationsPage() {
                   Utilisateurs ayant accès
                 </p>
 
-                {loadingAccess ? (
+                {accessQuery.isLoading ? (
                   <Skeleton className="mt-4 h-24" />
                 ) : (
                   <ul className="mt-4 space-y-2">
@@ -119,26 +138,17 @@ export default function AffectationsPage() {
                       return (
                         <li
                           key={row.userId}
-                          className="flex items-center justify-between gap-3 rounded-[var(--radius-md)] border border-[var(--border)] px-3 py-2"
+                          className="flex items-center justify-between gap-3 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface-muted)] px-3.5 py-3"
                         >
                           <span className="text-[13px]">{label}</span>
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={async () => {
-                              try {
-                                await revokeRequisitionAccess(
-                                  selected.id,
-                                  row.userId,
-                                );
-                                setAccess((prev) =>
-                                  prev.filter((a) => a.userId !== row.userId),
-                                );
-                                toast.success("Accès retiré");
-                              } catch {
-                                toast.error("Échec du retrait d’accès");
-                              }
-                            }}
+                            disabled={
+                              revokeMutation.isPending &&
+                              revokeMutation.variables === row.userId
+                            }
+                            onClick={() => revokeMutation.mutate(row.userId)}
                           >
                             Retirer
                           </Button>
@@ -165,31 +175,8 @@ export default function AffectationsPage() {
                     </select>
                   </label>
                   <Button
-                    disabled={!userId}
-                    onClick={async () => {
-                      try {
-                        await grantRequisitionAccess(selected.id, userId);
-                        const u = users.find((x) => x.id === userId);
-                        setAccess((prev) => [
-                          ...prev,
-                          {
-                            userId,
-                            user: u
-                              ? {
-                                  id: u.id,
-                                  firstName: u.name.split(" ")[0] ?? u.name,
-                                  lastName: u.name.split(" ").slice(1).join(" "),
-                                  email: u.email,
-                                }
-                              : undefined,
-                          },
-                        ]);
-                        setUserId("");
-                        toast.success("Terrain affecté");
-                      } catch {
-                        toast.error("Échec de l’affectation");
-                      }
-                    }}
+                    disabled={!userId || grantMutation.isPending}
+                    onClick={() => grantMutation.mutate(userId)}
                   >
                     Affecter
                   </Button>

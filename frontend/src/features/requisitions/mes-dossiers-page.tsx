@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import { ArrowUpRight, FileText, Search } from "lucide-react";
+import { ArrowUpRight, CalendarDays, FileText, MapPin, Ruler, Search } from "lucide-react";
 import {
   useGetAlerts,
   useGetDashboard,
@@ -81,7 +81,8 @@ export function MesDossiersPage() {
       />
 
       {rows.length > 0 && (
-        <div className="relative mb-5 max-w-md">
+        <div className="mb-5 rounded-[var(--radius-lg)] border border-[var(--border)] bg-white p-3 shadow-[var(--shadow-xs)]">
+          <div className="relative max-w-md">
           <Search className="absolute left-3 top-3 size-4 text-[var(--text-faint)]" />
           <input
             value={search}
@@ -90,6 +91,7 @@ export function MesDossiersPage() {
             className="nf-input nf-input--icon-left"
             aria-label="Rechercher un dossier"
           />
+          </div>
         </div>
       )}
 
@@ -104,7 +106,7 @@ export function MesDossiersPage() {
           description="Aucun terrain ne correspond à votre recherche."
         />
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
           {filtered.map((r) => {
             const docCount = docs.filter(
               (d) =>
@@ -146,15 +148,16 @@ function DossierCard({
     <Link
       href={`/requisitions/${r.id}`}
       className={cn(
-        "group flex h-full flex-col rounded-[11px] border border-[var(--border)] bg-[var(--surface)] p-5",
-        "shadow-[0_1px_2px_rgba(11,23,40,0.04)] transition",
-        "hover:-translate-y-0.5 hover:border-[var(--slate-300)] hover:bg-[var(--surface-muted)] hover:shadow-[0_6px_16px_rgba(11,23,40,0.06)]",
+        "group relative flex min-h-[300px] flex-col overflow-hidden rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] p-5",
+        "shadow-[var(--shadow-xs)] transition-all",
+        "hover:-translate-y-0.5 hover:border-[var(--border-strong)] hover:shadow-[var(--shadow-sm)]",
         "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[rgba(168,137,74,0.45)]",
       )}
     >
+      <span className="absolute inset-x-0 top-0 h-1 bg-[linear-gradient(90deg,var(--navy-800),var(--accent))] opacity-80" />
       <div className="flex items-start justify-between gap-3">
         <div className="flex min-w-0 items-center gap-2">
-          <p className="truncate text-[13px] font-semibold text-[var(--accent)]">
+          <p className="nf-eyebrow truncate">
             {r.number}
           </p>
           {hasUnread && (
@@ -167,15 +170,31 @@ function DossierCard({
         <StatusBadge status={r.status || "Non renseigné"} />
       </div>
 
-      <h2 className="mt-3 text-[16px] font-semibold leading-snug text-[var(--navy-950)] line-clamp-2">
+      <h2 className="mt-3 text-[18px] font-semibold leading-snug tracking-[-0.02em] text-[var(--navy-950)] line-clamp-2">
         {r.property}
       </h2>
 
-      <p className="mt-2 text-[13px] leading-5 text-[var(--text)] line-clamp-3">
-        {r.currentSituation ?? r.issue ?? "Situation à renseigner"}
-      </p>
+      <div className="mt-3 grid grid-cols-2 gap-2 text-[12px] text-[var(--text-muted)]">
+        <span className="flex min-w-0 items-center gap-2 rounded-[var(--radius-sm)] bg-[var(--surface-muted)] px-2.5 py-2">
+          <MapPin className="size-3.5 shrink-0 text-[var(--navy-700)]" />
+          <span className="truncate">{r.location || "Non renseignée"}</span>
+        </span>
+        <span className="flex min-w-0 items-center gap-2 rounded-[var(--radius-sm)] bg-[var(--surface-muted)] px-2.5 py-2">
+          <Ruler className="size-3.5 shrink-0 text-[var(--navy-700)]" />
+          <span className="truncate">{r.surface || "Non renseignée"}</span>
+        </span>
+      </div>
 
-      <div className="mt-auto space-y-2 border-t border-[var(--border)] pt-3 mt-4">
+      <div className="mt-4 flex-1 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface-raised)] p-3">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.06em] text-[var(--text-faint)]">
+          Situation actuelle
+        </p>
+        <p className="mt-1.5 text-[13px] leading-5 text-[var(--text)] line-clamp-3">
+          {r.currentSituation ?? r.issue ?? "Situation à renseigner"}
+        </p>
+      </div>
+
+      <div className="mt-4 space-y-2 border-t border-[var(--border)] pt-3">
         <div className="flex justify-between gap-2 text-[12px]">
           <span className="text-[var(--text-muted)]">Dernière mise à jour connue</span>
           <span className="max-w-[55%] text-right font-medium text-[var(--text)] line-clamp-2">
@@ -187,7 +206,8 @@ function DossierCard({
         </div>
         <div className="flex justify-between gap-2 text-[12px]">
           <span className="text-[var(--text-muted)]">Prochaine date</span>
-          <span className="font-medium tabular-nums text-[var(--text)] text-right">
+          <span className="inline-flex items-center gap-1.5 font-medium tabular-nums text-[var(--text)] text-right">
+            <CalendarDays className="size-3.5 text-[var(--text-faint)]" />
             {nextDateLabel(r.nextScheduledEventAt)}
           </span>
         </div>

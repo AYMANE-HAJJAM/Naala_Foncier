@@ -15,6 +15,8 @@ import type {
   CreateReportVersionDto,
   UpdateReportDto,
 } from "./reports.controller.js";
+import { AuditService } from "../audit/audit.service.js";
+import { NotificationsService } from "../notifications/notifications.service.js";
 
 const labels: Record<string, string> = {
   BROUILLON: "Brouillon",
@@ -59,6 +61,8 @@ export class ReportsService {
     private readonly access: AccessScopeService,
     private readonly storage: StorageService,
     private readonly config: ConfigService,
+    private readonly audit: AuditService,
+    private readonly notifications: NotificationsService,
   ) {}
 
   private documentInclude = {
@@ -244,7 +248,7 @@ export class ReportsService {
     await this.access.assertCanAccessOptionalRequisition(user, d.requisitionId);
     return this.p.$transaction(async (tx) => {
       const r = await tx.report.create({ data: { ...d, createdById: user.id }, include: this.include });
-      await tx.auditLog.create({ data: { actorUserId: user.id, action: "REPORT_CREATED", entityType: "Report", entityId: r.id, metadata: r.requisitionId ? { requisitionId: r.requisitionId } : undefined } });
+      await this.audit.write({ actorUserId: user.id, action: "REPORT_CREATED", entityType: "Report", entityId: r.id, metadata: r.requisitionId ? { requisitionId: r.requisitionId } : undefined }, tx);
       return this.present(r);
     });
   }
@@ -260,7 +264,7 @@ export class ReportsService {
     }
     return this.p.$transaction(async (tx) => {
       const updated = await tx.report.update({ where: { id }, data: d, include: this.include });
-      await tx.auditLog.create({ data: { actorUserId: user.id, action: "REPORT_UPDATED", entityType: "Report", entityId: id, metadata: updated.requisitionId ? { requisitionId: updated.requisitionId } : undefined } });
+      await this.audit.write({ actorUserId: user.id, action: "REPORT_UPDATED", entityType: "Report", entityId: id, metadata: updated.requisitionId ? { requisitionId: updated.requisitionId } : undefined }, tx);
       return this.present(updated);
     });
   }
@@ -290,8 +294,8 @@ export class ReportsService {
         where: { id },
         data: { currentVersionId: v.id, status: "BROUILLON" },
       });
-      await tx.auditLog.create({
-        data: {
+      await this.audit.write(
+        {
           actorUserId: user.id,
           action: "REPORT_VERSION_CREATED",
           entityType: "Report",
@@ -299,7 +303,8 @@ export class ReportsService {
           newValues: { versionNumber: v.versionNumber },
           metadata: report.requisitionId ? { requisitionId: report.requisitionId } : undefined,
         },
-      });
+        tx,
+      );
       return v;
     });
   }
@@ -319,15 +324,16 @@ export class ReportsService {
         data: { status: "A_VALIDER" },
         include: this.include,
       });
-      await tx.auditLog.create({
-        data: {
+      await this.audit.write(
+        {
           actorUserId: user.id,
           action: "REPORT_SUBMITTED",
           entityType: "Report",
           entityId: id,
           metadata: report.requisitionId ? { requisitionId: report.requisitionId } : undefined,
         },
-      });
+        tx,
+      );
       return this.present(updated);
     });
   }
@@ -344,15 +350,16 @@ export class ReportsService {
         data: { status, validatedById: user.id, validatedAt: new Date() },
         include: this.include,
       });
-      await tx.auditLog.create({
-        data: {
+      await this.audit.write(
+        {
           actorUserId: user.id,
           action: status === "VALIDE" ? "REPORT_VALIDATED" : "REPORT_REJECTED",
           entityType: "Report",
           entityId: id,
           metadata: r.requisitionId ? { requisitionId: r.requisitionId } : undefined,
         },
-      });
+        tx,
+      );
       return this.present(v);
     });
   }
@@ -369,33 +376,34 @@ export class ReportsService {
       const changed = await tx.report.updateMany({ where: { id, status: "VALIDE" }, data: { status: "PUBLIE", publishedAt: new Date(), publishedById: user.id } });
       const updated = await tx.report.findUniqueOrThrow({ where: { id }, include: this.include });
       if (changed.count === 0) return this.present(updated);
-      await tx.auditLog.create({
-        data: {
+      await this.audit.write(
+        {
           actorUserId: user.id,
           action: "REPORT_PUBLISHED",
           entityType: "Report",
           entityId: id,
           metadata: report.requisitionId ? { requisitionId: report.requisitionId } : undefined,
         },
-      });
+        tx,
+      );
       if (report.requisitionId) {
         const recipients = await tx.userRequisitionAccess.findMany({
           where: { requisitionId: report.requisitionId },
           select: { userId: true },
         });
-        await tx.notification.createMany({
-          data: recipients.map(({ userId }) => ({
-            userId,
+        await this.notifications.deliver(
+          {
+            recipientIds: recipients.map(({ userId }) => userId),
             type: "REPORT_PUBLISHED",
             title: "Nouveau rapport publié",
             message: report.title,
             requisitionId: report.requisitionId,
             relatedEntityType: "Report",
             relatedEntityId: report.id,
-            dedupeKey: `REPORT_PUBLISHED:${userId}:${report.id}`,
-          })),
-          skipDuplicates: true,
-        });
+            dedupeKey: (userId) => `REPORT_PUBLISHED:${userId}:${report.id}`,
+          },
+          tx,
+        );
       }
       return this.present(updated);
     });

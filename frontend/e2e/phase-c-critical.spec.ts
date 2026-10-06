@@ -1,7 +1,7 @@
 import { expect, test, type APIRequestContext } from "@playwright/test";
 import { qa } from "./qa-env";
 
-const apiBase = "http://localhost:3101/api";
+const apiBase = process.env.E2E_API_BASE_URL ?? "http://localhost:3201/api";
 
 type Session = { token: string; user: { id: string; roles: string[] } };
 

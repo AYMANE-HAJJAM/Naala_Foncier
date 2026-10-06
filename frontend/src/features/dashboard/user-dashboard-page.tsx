@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { AlertTriangle, ArrowUpRight } from "lucide-react";
+import { AlertTriangle, ArrowUpRight, CalendarDays } from "lucide-react";
 import { useGetDashboard, useGetReports } from "@/generated/api/naala";
 import { PageHeader, SectionHeader } from "@/components/shared/page";
 import { MetricItem } from "@/components/shared/primitives";
@@ -15,10 +15,7 @@ import type {
   ReportItem,
   Requisition,
 } from "@/types/domain";
-
-function todayIso() {
-  return new Date().toISOString().slice(0, 10);
-}
+import { localDateKey } from "@/lib/domain/date";
 
 export function UserDashboardPage() {
   const { data: response, isLoading, isError, refetch } = useGetDashboard();
@@ -61,7 +58,7 @@ export function UserDashboardPage() {
   };
 
   const reqs = data.requisitions ?? [];
-  const today = todayIso();
+  const today = localDateKey();
   const docs = [...(data.documents ?? [])].sort((a, b) =>
     b.date.localeCompare(a.date),
   );
@@ -108,7 +105,7 @@ export function UserDashboardPage() {
         subtitle="Vue d’ensemble de vos terrains et prochaines échéances."
       />
 
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <MetricItem
           label="Terrains attribués"
           value={String(reqs.length)}
@@ -133,8 +130,12 @@ export function UserDashboardPage() {
             Prochaine échéance
           </h2>
           {nearestDate ? (
-            <Card className="p-5">
-              <p className="text-[22px] font-semibold tabular-nums tracking-tight text-[var(--navy-950)]">
+            <Card className="relative overflow-hidden bg-[linear-gradient(145deg,#fff,var(--surface-muted))] p-5 sm:p-6">
+              <span className="absolute inset-y-5 left-0 w-[3px] rounded-r-full bg-[var(--accent)]" />
+              <span className="nf-icon-box mb-4">
+                <CalendarDays className="size-4" />
+              </span>
+              <p className="text-[24px] font-semibold tabular-nums tracking-[-0.03em] text-[var(--navy-950)]">
                 {formatDate(nearestDate)}
               </p>
               {nearestLabel && (
@@ -173,7 +174,7 @@ export function UserDashboardPage() {
                   <li key={r.id}>
                     <Link
                       href={`/requisitions/${r.id}`}
-                      className="flex items-start justify-between gap-3 px-4 py-3 hover:bg-[var(--surface-muted)]"
+                      className="flex items-start justify-between gap-3 px-4 py-3.5 hover:bg-[var(--surface-muted)]"
                     >
                       <div className="min-w-0">
                         <p className="text-[13px] font-semibold text-[var(--accent)]">
@@ -219,7 +220,7 @@ export function UserDashboardPage() {
                             ? `/requisitions/${d.requisitionId}?tab=documents`
                             : "/mes-dossiers"
                         }
-                        className="block px-4 py-3 hover:bg-[var(--surface-muted)]"
+                        className="block px-4 py-3.5 hover:bg-[var(--surface-muted)]"
                       >
                         <p className="text-[13px] font-semibold">{d.title}</p>
                         <p className="mt-0.5 text-[12px] text-[var(--text-muted)]">
@@ -259,7 +260,7 @@ export function UserDashboardPage() {
                             ? `/requisitions/${r.requisitionId}?tab=rapports`
                             : "/mes-dossiers"
                         }
-                        className="block px-4 py-3 hover:bg-[var(--surface-muted)]"
+                        className="block px-4 py-3.5 hover:bg-[var(--surface-muted)]"
                       >
                         <p className="text-[13px] font-semibold">{r.title}</p>
                         <p className="mt-0.5 text-[12px] text-[var(--text-muted)]">

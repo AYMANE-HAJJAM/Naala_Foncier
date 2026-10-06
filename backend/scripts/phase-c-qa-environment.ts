@@ -149,7 +149,7 @@ async function setup() {
     await pool.end();
   }
   const values = writeQaEnv(databaseUrl, directUrl);
-  const env = { ...process.env, ...values, INITIAL_ADMIN_PASSWORD: values.QA_ADMIN_PASSWORD };
+  const env = { ...process.env, ...values };
   run("npx.cmd", ["prisma", "migrate", "deploy"], env);
   run("npx.cmd", ["tsx", "prisma/seed.ts"], env);
   await seedQa(values);

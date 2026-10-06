@@ -1,7 +1,7 @@
 import { expect, test, type APIRequestContext, type Page } from "@playwright/test";
 import { qa } from "./qa-env";
 
-const apiBase = "http://localhost:3101/api";
+const apiBase = process.env.E2E_API_BASE_URL ?? "http://localhost:3101/api";
 
 async function loginUi(page: Page, email: string, password: string) {
   await page.goto("/login");

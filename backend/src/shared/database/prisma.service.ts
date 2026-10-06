@@ -5,14 +5,14 @@ import { PrismaClient } from "../../generated/prisma/client.js";
 
 @Injectable()
 export class PrismaService extends PrismaClient implements OnModuleInit, OnModuleDestroy {
-  constructor(@Inject(ConfigService) config: ConfigService) {
+  constructor(@Inject(ConfigService) private readonly config: ConfigService) {
     super({ adapter: new PrismaPg({ connectionString: config.getOrThrow<string>("DATABASE_URL") }) });
   }
 
   async onModuleInit(): Promise<void> {
     await this.$connect();
-    const expectedSchema = process.env.EXPECTED_DATABASE_SCHEMA;
-    const expectedDatabase = process.env.EXPECTED_DATABASE_NAME;
+    const expectedSchema = this.config.get<string>("EXPECTED_DATABASE_SCHEMA");
+    const expectedDatabase = this.config.get<string>("EXPECTED_DATABASE_NAME");
     if (expectedSchema || expectedDatabase) {
       const [row] = await this.$queryRaw<Array<{ current_schema: string; current_database: string }>>`SELECT current_schema(), current_database()`;
       if (

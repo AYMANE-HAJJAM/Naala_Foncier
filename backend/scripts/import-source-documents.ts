@@ -726,7 +726,7 @@ async function applyFileUploads(prisma: PrismaClient, adminId: string, dryRun: b
     } catch (err) {
           const message =
             err && typeof err === "object" && "message" in err
-              ? String((err as { message: unknown }).message)
+              ? String(err.message)
               : String(err);
           log(`FLAG UPLOAD FAILED ${filename}: ${message}`);
           await prisma.report.create({
@@ -914,9 +914,9 @@ async function main() {
     }
 
     const admin = await prisma.user.findFirst({
-      where: { email: "admin@naala-foncier.ma", deletedAt: null },
+      where: { isActive: true, deletedAt: null, roles: { some: { role: { key: "ADMIN" } } } },
     });
-    if (!admin) throw new Error("Admin user admin@naala-foncier.ma not found");
+    if (!admin) throw new Error("Active ADMIN user not found");
 
     if (args.importData) {
       log("→ Applying safe data import…");

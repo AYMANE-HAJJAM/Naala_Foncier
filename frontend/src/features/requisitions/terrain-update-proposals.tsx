@@ -1,7 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Check, X, AlertCircle, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/core";
@@ -13,6 +13,12 @@ import {
 } from "@/lib/api/phase1";
 import { useAuth } from "@/providers/auth-provider";
 import { toast } from "sonner";
+import {
+  getGetRequisitionEventsQueryKey,
+  getGetRequisitionQueryKey,
+} from "@/generated/api/naala";
+import { domainQueryKeys } from "@/lib/api/query-keys";
+import { uiErrorMessage } from "@/lib/api/error-message";
 
 function confidenceLabel(c: string) {
   if (c === "HIGH" || c === "ELEVEE") return "Confiance élevée";
@@ -27,39 +33,18 @@ export function TerrainUpdateProposalsPanel({
 }) {
   const { isAdmin: admin } = useAuth();
   const qc = useQueryClient();
-  const [proposals, setProposals] = useState<TerrainUpdateProposalDto[]>([]);
-  const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [manualValues, setManualValues] = useState<Record<string, string>>({});
-
-  const load = useCallback(async () => {
-    if (!admin) {
-      setLoading(false);
-      return;
-    }
-    setLoading(true);
-    try {
-      const rows = await getRequisitionAiProposals(requisitionId);
-      setProposals(rows.filter((p) => p.status === "PROPOSED"));
-    } catch {
-      setProposals([]);
-    } finally {
-      setLoading(false);
-    }
-  }, [admin, requisitionId]);
-
-  useEffect(() => {
-    let active = true;
-    queueMicrotask(() => {
-      if (active) void load();
-    });
-    return () => {
-      active = false;
-    };
-  }, [load]);
+  const proposalsQuery = useQuery({
+    queryKey: domainQueryKeys.terrainUpdateProposals(requisitionId),
+    queryFn: () => getRequisitionAiProposals(requisitionId),
+    enabled: admin,
+    select: (rows) => rows.filter((proposal) => proposal.status === "PROPOSED"),
+  });
+  const proposals = proposalsQuery.data ?? [];
 
   if (!admin) return null;
-  if (loading) {
+  if (proposalsQuery.isLoading) {
     return (
       <Card className="p-4 text-sm text-[var(--text-muted)]">
         Chargement des mises à jour proposées…
@@ -79,11 +64,13 @@ export function TerrainUpdateProposalsPanel({
         manualValue: manualValues[p.id],
       });
       toast.success("Proposition confirmée");
-      await load();
-      void qc.invalidateQueries({ queryKey: [`/api/requisitions/${requisitionId}`] });
-      void qc.invalidateQueries({ queryKey: [`/api/requisitions/${requisitionId}/events`] });
+      await Promise.all([
+        qc.invalidateQueries({ queryKey: domainQueryKeys.terrainUpdateProposals(requisitionId) }),
+        qc.invalidateQueries({ queryKey: getGetRequisitionQueryKey(requisitionId) }),
+        qc.invalidateQueries({ queryKey: getGetRequisitionEventsQueryKey(requisitionId) }),
+      ]);
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Échec de confirmation");
+      toast.error(uiErrorMessage(e, "Échec de confirmation"));
     } finally {
       setBusyId(null);
     }
@@ -94,9 +81,11 @@ export function TerrainUpdateProposalsPanel({
     try {
       await rejectRequisitionAiProposal(requisitionId, p.id);
       toast.success("Proposition rejetée");
-      await load();
+      await qc.invalidateQueries({
+        queryKey: domainQueryKeys.terrainUpdateProposals(requisitionId),
+      });
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Échec du rejet");
+      toast.error(uiErrorMessage(e, "Échec du rejet"));
     } finally {
       setBusyId(null);
     }
@@ -114,7 +103,12 @@ export function TerrainUpdateProposalsPanel({
             vérifier — analyse automatique
           </p>
         </div>
-        <Button variant="ghost" size="sm" onClick={() => void load()}>
+        <Button
+          variant="ghost"
+          size="sm"
+          disabled={proposalsQuery.isFetching}
+          onClick={() => void proposalsQuery.refetch()}
+        >
           <RefreshCw className="size-3.5" />
           Actualiser
         </Button>

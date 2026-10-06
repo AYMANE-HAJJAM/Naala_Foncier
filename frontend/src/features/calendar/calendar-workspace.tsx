@@ -11,11 +11,7 @@ import {
   subDays,
 } from "date-fns";
 import { fr } from "date-fns/locale";
-import {
-  ChevronLeft,
-  ChevronRight,
-  Plus,
-} from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   getGetCalendarEventsQueryKey,
@@ -33,6 +29,7 @@ import { useAuth } from "@/providers/auth-provider";
 import { cn, formatDate } from "@/lib/utils";
 import type { Requisition } from "@/types/domain";
 import { toast } from "sonner";
+import { uiErrorMessage } from "@/lib/api/error-message";
 
 export type CalendarEventItem = {
   id: string;
@@ -105,7 +102,7 @@ function CalendarEventLink({ event }: { event: CalendarEventItem }) {
   return (
     <Link
       href={`/requisitions/${event.requisitionId}?tab=calendrier`}
-      className="block min-w-0 rounded-[var(--radius-md)] border border-[var(--border)] px-3 py-3 transition hover:border-[var(--navy-700)] hover:bg-[var(--surface-muted)]"
+      className="block min-w-0 rounded-[var(--radius-md)] border border-[var(--border)] bg-white px-3.5 py-3.5 shadow-[var(--shadow-xs)] transition-all hover:-translate-y-px hover:border-[var(--border-strong)] hover:shadow-[var(--shadow-sm)]"
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
@@ -171,7 +168,9 @@ function NewEventDialog({
         },
       });
       await Promise.all([
-        queryClient.invalidateQueries({ queryKey: getGetCalendarEventsQueryKey() }),
+        queryClient.invalidateQueries({
+          queryKey: getGetCalendarEventsQueryKey(),
+        }),
         queryClient.invalidateQueries({
           queryKey: getGetUpcomingCalendarEventsQueryKey(),
         }),
@@ -182,8 +181,8 @@ function NewEventDialog({
       setDate(today);
       onOpenChange(false);
       toast.success("Événement ajouté au calendrier");
-    } catch {
-      toast.error("Impossible d’ajouter l’événement");
+    } catch (error) {
+      toast.error(uiErrorMessage(error, "Impossible d’ajouter l’événement"));
     }
   };
 
@@ -304,14 +303,16 @@ export function CalendarWorkspace({
   });
 
   const calendarEvents = useMemo(() => {
-    const rows = (eventsQuery.data?.data ?? []) as unknown as CalendarEventItem[];
+    const rows = (eventsQuery.data?.data ??
+      []) as unknown as CalendarEventItem[];
     return rows.filter(
       (event) => !requisition || event.requisitionId === requisition.id,
     );
   }, [eventsQuery.data, requisition]);
   const upcomingEvents = useMemo(() => {
     const now = new Date();
-    const rows = (upcomingQuery.data?.data ?? []) as unknown as CalendarEventItem[];
+    const rows = (upcomingQuery.data?.data ??
+      []) as unknown as CalendarEventItem[];
     return rows
       .filter(
         (event) =>
@@ -392,13 +393,14 @@ export function CalendarWorkspace({
                     const dayKey = day ? format(day, "yyyy-MM-dd") : "";
                     const dayEvents = day
                       ? calendarEvents.filter(
-                          (event) => format(eventDate(event), "yyyy-MM-dd") === dayKey,
+                          (event) =>
+                            format(eventDate(event), "yyyy-MM-dd") === dayKey,
                         )
                       : [];
                     return (
                       <div
                         key={`${dayKey}-${index}`}
-                        className="min-h-24 border-b border-r border-[var(--border)] p-2"
+                        className="min-h-24 border-b border-r border-[var(--border)] p-2 transition-colors hover:bg-[var(--surface-muted)]/70"
                       >
                         <span
                           className={cn(
@@ -414,10 +416,11 @@ export function CalendarWorkspace({
                             <Link
                               key={event.id}
                               href={`/requisitions/${event.requisitionId}?tab=calendrier`}
-                              className="block truncate rounded-[var(--radius-sm)] bg-amber-50 px-1.5 py-1 text-[9px] font-semibold text-amber-900 hover:bg-amber-100"
+                              className="block truncate rounded-[var(--radius-sm)] border border-amber-200/60 bg-amber-50 px-1.5 py-1 text-[9px] font-semibold text-amber-900 hover:bg-amber-100"
                               title={`${event.requisitionReference} · ${event.title}`}
                             >
-                              {event.requisitionReference} · {eventTypeLabel(event.type)}
+                              {event.requisitionReference} ·{" "}
+                              {eventTypeLabel(event.type)}
                             </Link>
                           ))}
                           {dayEvents.length > 3 ? (
@@ -448,9 +451,11 @@ export function CalendarWorkspace({
                   className="py-7"
                 />
               ) : (
-                upcomingEvents.slice(0, 12).map((event) => (
-                  <CalendarEventLink key={event.id} event={event} />
-                ))
+                upcomingEvents
+                  .slice(0, 12)
+                  .map((event) => (
+                    <CalendarEventLink key={event.id} event={event} />
+                  ))
               )}
             </div>
           </Card>

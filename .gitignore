@@ -7,9 +7,9 @@
 **/dist/
 **/out/
 **/coverage/
-frontend/artifacts/
-frontend/playwright-report/
-frontend/test-results/
+**/artifacts/
+**/playwright-report/
+**/test-results/
 *.tsbuildinfo
 
 # Runtime and temporary files

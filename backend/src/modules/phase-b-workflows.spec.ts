@@ -15,7 +15,14 @@ describe("Phase B report visibility", () => {
       requisitionIdFilter: jest.fn().mockResolvedValue({ in: ["terrain-1"] }),
       assignedRequisitionIds: jest.fn().mockResolvedValue(["terrain-1"]),
     };
-    const service = new ReportsService(prisma as never, access as never, {} as never, { get: jest.fn() } as never);
+    const service = new ReportsService(
+      prisma as never,
+      access as never,
+      {} as never,
+      { get: jest.fn() } as never,
+      { write: jest.fn() } as never,
+      { deliver: jest.fn() } as never,
+    );
     await service.list(user as never);
     expect(where).toMatchObject({ deletedAt: null, status: "PUBLIE" });
   });

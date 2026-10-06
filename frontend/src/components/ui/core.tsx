@@ -1,9 +1,8 @@
 "use client";
 
 import * as DialogPrimitive from "@radix-ui/react-dialog";
-import { X } from "lucide-react";
+import { Inbox, X } from "lucide-react";
 import { cn } from "@/lib/utils";
-import type { Risk } from "@/types/domain";
 
 export function Card({
   className,
@@ -15,7 +14,7 @@ export function Card({
   return (
     <section
       className={cn(
-        "rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)]",
+        "rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] shadow-[var(--shadow-xs)]",
         className,
       )}
     >
@@ -43,7 +42,7 @@ export function Badge({
   return (
     <span
       className={cn(
-        "inline-flex items-center rounded-[var(--radius-sm)] border px-2 py-0.5 text-[11px] font-semibold leading-5",
+        "inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[11px] font-semibold leading-5",
         tones[tone],
         className,
       )}
@@ -51,17 +50,6 @@ export function Badge({
       {children}
     </span>
   );
-}
-
-export function RiskBadge({ risk }: { risk: Risk | string }) {
-  const tone = risk.includes("Critique")
-    ? "critical"
-    : risk.includes("Élevé")
-      ? "warning"
-      : risk === "Faible"
-        ? "success"
-        : "info";
-  return <Badge tone={tone}>{risk}</Badge>;
 }
 
 export function StatusBadge({ status }: { status: string }) {
@@ -76,28 +64,6 @@ export function StatusBadge({ status }: { status: string }) {
           ? "info"
           : "warning";
   return <Badge tone={tone}>{status}</Badge>;
-}
-
-export function Progress({
-  value,
-  className,
-}: {
-  value: number;
-  className?: string;
-}) {
-  return (
-    <div
-      className={cn(
-        "h-1 overflow-hidden rounded-full bg-[var(--slate-100)]",
-        className,
-      )}
-    >
-      <div
-        className="h-full rounded-full bg-[var(--navy-800)] transition-all"
-        style={{ width: `${Math.min(100, value)}%` }}
-      />
-    </div>
-  );
 }
 
 export function Dialog({
@@ -121,16 +87,16 @@ export function Dialog({
         <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-[var(--navy-950)]/40" />
         <DialogPrimitive.Content
           className={cn(
-            "fixed left-1/2 top-1/2 z-50 w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-[var(--radius-lg)] border border-[var(--border)] bg-white p-6 shadow-[0_12px_40px_rgba(11,23,40,.12)]",
+            "fixed left-1/2 top-1/2 z-50 w-[calc(100%-1.5rem)] -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-[var(--radius-xl)] border border-white/70 bg-white p-5 shadow-[var(--shadow-md)] sm:p-7",
             size === "md" && "max-h-[90vh] max-w-lg",
             size === "lg" && "max-h-[90vh] max-w-2xl",
             size === "xl" && "max-h-[90vh] max-w-4xl",
             size === "wizard" &&
-              "max-h-[85vh] w-[min(1100px,90vw)] max-w-[min(1100px,90vw)]",
+              "max-h-[92vh] w-[min(1120px,96vw)] max-w-[min(1120px,96vw)] sm:max-h-[88vh] sm:w-[min(1120px,92vw)]",
           )}
         >
           <div className="pr-10">
-            <DialogPrimitive.Title className="text-lg font-semibold text-[var(--navy-950)]">
+            <DialogPrimitive.Title className="text-[20px] font-semibold tracking-tight text-[var(--navy-950)]">
               {title}
             </DialogPrimitive.Title>
             {description && (
@@ -164,11 +130,14 @@ export function EmptyState({
   return (
     <div
       className={cn(
-        "grid place-items-center rounded-[var(--radius-lg)] border border-dashed border-[var(--border)] bg-[var(--surface-muted)] px-6 py-10 text-center",
+            "grid min-h-48 place-items-center rounded-[var(--radius-lg)] border border-dashed border-[var(--border-strong)] bg-[linear-gradient(145deg,var(--surface),var(--surface-muted))] px-6 py-10 text-center",
         className,
       )}
     >
       <div>
+        <span className="nf-icon-box mx-auto mb-4 bg-white shadow-[var(--shadow-xs)]">
+          <Inbox className="size-4" aria-hidden />
+        </span>
         <h3 className="text-sm font-semibold text-[var(--text)]">{title}</h3>
         <p className="mt-1.5 max-w-md text-[13px] leading-5 text-[var(--text-muted)]">
           {description}
@@ -182,7 +151,7 @@ export function Skeleton({ className }: { className?: string }) {
   return (
     <div
       className={cn(
-        "animate-pulse rounded-[var(--radius-md)] bg-[var(--slate-200)]/70",
+        "animate-pulse rounded-[var(--radius-md)] bg-[linear-gradient(90deg,var(--slate-100),var(--slate-200),var(--slate-100))] bg-[length:200%_100%]",
         className,
       )}
     />

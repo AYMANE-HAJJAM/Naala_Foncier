@@ -217,8 +217,8 @@ export class TerrainUpdateProposalService {
         options,
       });
 
-      await tx.auditLog.create({
-        data: {
+      await this.audit.write(
+        {
           actorUserId: user.id,
           action: "ai_proposal.confirm",
           entityType: "AIExtraction",
@@ -231,7 +231,8 @@ export class TerrainUpdateProposalService {
           },
           metadata: { requisitionId },
         },
-      });
+        tx,
+      );
 
       return { confirmed, domainResult };
     });

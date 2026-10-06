@@ -23,6 +23,7 @@ import {
   subscribeToSessionRefresh,
   type SessionUser,
 } from "@/lib/api/auth-session";
+import { uiCapabilities, type UiCapabilities } from "@/lib/auth/permissions";
 
 export type AuthStatus = "loading" | "authenticated" | "unauthenticated";
 
@@ -30,6 +31,7 @@ type AuthContextValue = {
   status: AuthStatus;
   user: SessionUser | null;
   isAdmin: boolean;
+  capabilities: UiCapabilities;
   login(email: string, password: string): Promise<SessionUser>;
   logout(): Promise<void>;
 };
@@ -137,6 +139,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       status,
       user,
       isAdmin: Boolean(user?.roles.includes("ADMIN")),
+      capabilities: uiCapabilities(user),
       login,
       logout,
     }),

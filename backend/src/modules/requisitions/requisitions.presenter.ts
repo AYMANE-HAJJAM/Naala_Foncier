@@ -1,5 +1,6 @@
 import type { Prisma } from "../../generated/prisma/client.js";
 import type { RequisitionStatus, RiskLevel } from "../../generated/prisma/enums.js";
+import { futureDateOnly, isoDateOnly } from "../../shared/date/date-rules.js";
 
 export type RequisitionRecord = Prisma.RequisitionGetPayload<{
   include: {
@@ -39,18 +40,6 @@ function stringList(value: unknown): string[] {
   return value.filter((v): v is string => typeof v === "string");
 }
 
-function isoDate(value?: Date | null): string | null {
-  return value ? value.toISOString().slice(0, 10) : null;
-}
-
-/** Never treat a past stored date as an upcoming date. */
-function futureOnly(value?: Date | null): string | null {
-  if (!value) return null;
-  const iso = value.toISOString().slice(0, 10);
-  const today = new Date().toISOString().slice(0, 10);
-  return iso >= today ? iso : null;
-}
-
 function courtReachedLabel(value: string | null | undefined, hasCases: boolean): string {
   if (value === "Oui" || (!value && hasCases)) return "Oui";
   if (value === "Non") return "Non";
@@ -70,10 +59,10 @@ export function presentRequisition(r: RequisitionRecord) {
     x.latestKnownEvent ??
     r.eventLabel ??
     undefined;
-  const latestKnownEventAt = isoDate(
+  const latestKnownEventAt = isoDateOnly(
     r.statusSnapshot?.latestKnownEventAt ?? x.latestKnownEventAt,
   );
-  const nextScheduledEventAt = futureOnly(
+  const nextScheduledEventAt = futureDateOnly(
     r.statusSnapshot?.nextScheduledEventAt ?? x.nextScheduledEventAt,
   );
   const hasCases = r.legalCases.length > 0;
@@ -112,7 +101,7 @@ export function presentRequisition(r: RequisitionRecord) {
     latestKnownEventAt,
     eventResult: x.eventResult ?? null,
     latestJudicialEvent: x.latestJudicialEvent ?? null,
-    latestJudicialEventAt: isoDate(x.latestJudicialEventAt),
+    latestJudicialEventAt: isoDateOnly(x.latestJudicialEventAt),
     judicialResult: x.judicialResult ?? null,
     nextScheduledEventAt,
     dataFreshness,
@@ -142,7 +131,7 @@ export function presentRequisition(r: RequisitionRecord) {
       ? `${r.responsibleUser.firstName} ${r.responsibleUser.lastName}`
       : "Non renseigné",
     lastUpdate: r.updatedAt.toISOString(),
-    lastManuallyUpdatedAt: isoDate(x.lastManuallyUpdatedAt),
+    lastManuallyUpdatedAt: isoDateOnly(x.lastManuallyUpdatedAt),
     rank: r.priorityRank ?? 99,
     isPrincipal,
   };

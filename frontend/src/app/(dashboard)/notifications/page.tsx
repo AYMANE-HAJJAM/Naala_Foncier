@@ -14,13 +14,11 @@ import { EmptyState, Skeleton } from "@/components/ui/core";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { cn, formatDate } from "@/lib/utils";
-
-function startOfDay(d: Date) {
-  return new Date(d.getFullYear(), d.getMonth(), d.getDate());
-}
+import { startOfLocalDay } from "@/lib/domain/date";
+import { uiErrorMessage } from "@/lib/api/error-message";
 
 function groupNotifications(alerts: NotificationItem[]) {
-  const now = startOfDay(new Date());
+  const now = startOfLocalDay(new Date());
   const weekAgo = new Date(now);
   weekAgo.setDate(weekAgo.getDate() - 7);
 
@@ -35,13 +33,14 @@ function groupNotifications(alerts: NotificationItem[]) {
   ];
 
   for (const n of alerts) {
-    const raw = (n as NotificationItem & { createdAt?: string }).createdAt ?? "";
+    const raw =
+      (n as NotificationItem & { createdAt?: string }).createdAt ?? "";
     const date = raw ? new Date(raw) : null;
     if (!date || Number.isNaN(date.getTime())) {
       groups[2].items.push(n);
       continue;
     }
-    const day = startOfDay(date);
+    const day = startOfLocalDay(date);
     if (day.getTime() === now.getTime()) groups[0].items.push(n);
     else if (day >= weekAgo) groups[1].items.push(n);
     else groups[2].items.push(n);
@@ -77,8 +76,8 @@ export default function NotificationsPage() {
                 await markAll.mutateAsync();
                 await refetch();
                 toast.success("Toutes les notifications sont lues");
-              } catch {
-                toast.error("Impossible de tout marquer comme lu");
+              } catch (error) {
+                toast.error(uiErrorMessage(error, "Impossible de tout marquer comme lu"));
               }
             }}
           >
@@ -100,7 +99,7 @@ export default function NotificationsPage() {
               <h2 className="mb-3 text-[13px] font-semibold text-[var(--text-muted)]">
                 {group.label}
               </h2>
-              <ul className="overflow-hidden rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] divide-y divide-[var(--border)]">
+              <ul className="overflow-hidden rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] shadow-[var(--shadow-xs)] divide-y divide-[var(--border)]">
                 {group.items.map((n) => {
                   const createdAt = (
                     n as NotificationItem & { createdAt?: string }
@@ -113,14 +112,17 @@ export default function NotificationsPage() {
                             ? `/requisitions/${n.requisitionId}`
                             : "/notifications"
                         }
-                        className="flex items-start gap-3 px-4 py-3.5 hover:bg-[var(--surface-muted)]"
+                        className={cn(
+                          "flex items-start gap-3 px-4 py-4 transition-colors hover:bg-[var(--surface-muted)] sm:px-5",
+                          !n.read && "bg-[color-mix(in_srgb,var(--gold-100)_35%,white)]",
+                        )}
                         onClick={async () => {
                           if (!n.read) {
                             try {
                               await markOne.mutateAsync({ id: n.id });
                               await refetch();
-                            } catch {
-                              /* ignore */
+                            } catch (error) {
+                              toast.error(uiErrorMessage(error, "Impossible de marquer cette notification comme lue"));
                             }
                           }
                         }}
@@ -128,9 +130,7 @@ export default function NotificationsPage() {
                         <span
                           className={cn(
                             "mt-2 size-1.5 shrink-0 rounded-full",
-                            n.read
-                              ? "bg-transparent"
-                              : "bg-[var(--accent)]",
+                            n.read ? "bg-transparent" : "bg-[var(--accent)]",
                           )}
                           aria-hidden
                         />
@@ -147,7 +147,9 @@ export default function NotificationsPage() {
                               {n.title}
                             </p>
                             <span className="text-[11px] tabular-nums text-[var(--text-faint)]">
-                              {createdAt ? formatDate(createdAt.slice(0, 10)) : ""}
+                              {createdAt
+                                ? formatDate(createdAt.slice(0, 10))
+                                : ""}
                             </span>
                           </div>
                           <p className="mt-1 text-[12px] leading-5 text-[var(--text-muted)]">

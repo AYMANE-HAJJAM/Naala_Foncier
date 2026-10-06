@@ -216,9 +216,9 @@ export class TerrainDraftAnalysisService {
               ? obj.buffer
               : Buffer.from(obj.buffer),
           });
-        } catch (err) {
+        } catch {
           this.logger.warn(
-            `Failed to fetch draft document ${d.id}: ${(err as Error).message}`,
+            `Failed to fetch draft document ${d.id}: AI_FILE_UNREADABLE`,
           );
           throw new DocumentAnalysisProviderError(
             "AI_FILE_UNREADABLE",
@@ -315,10 +315,10 @@ export class TerrainDraftAnalysisService {
           ? err.code
           : "AI_ANALYSIS_FAILED";
       const message =
-        err instanceof Error
+        err instanceof DocumentAnalysisProviderError
           ? err.message
           : "L’analyse automatique n’a pas pu être terminée.";
-      this.logger.error(`Analysis run ${runId} failed: ${message}`);
+      this.logger.error(`Analysis run ${runId} failed: ${code}`);
       await this.fail(runId, draftId, code, message, emptyProposal(message));
     }
   }

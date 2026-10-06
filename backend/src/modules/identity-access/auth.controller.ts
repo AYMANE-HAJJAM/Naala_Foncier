@@ -26,6 +26,7 @@ import {
   LoginResponseDto,
 } from "./dto/auth.dto.js";
 import { Public } from "./public.decorator.js";
+import { isProductionEnvironment } from "../../shared/config/environment.js";
 
 @ApiTags("Authentication")
 @Controller("auth")
@@ -40,7 +41,7 @@ export class AuthController {
   @HttpCode(200)
   @Throttle({
     default: {
-      limit: () => (process.env.NODE_ENV === "production" ? 5 : 30),
+      limit: () => (isProductionEnvironment() ? 5 : 30),
       ttl: 60_000,
     },
   })

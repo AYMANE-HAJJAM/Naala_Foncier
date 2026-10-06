@@ -14,17 +14,23 @@ export function MetricItem({
   return (
     <div
       className={cn(
-        "rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] px-4 py-3.5",
-        urgent && "border-amber-300/80 bg-amber-50/50",
+        "relative overflow-hidden rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] px-5 py-4 shadow-[var(--shadow-xs)] transition-[border-color,box-shadow,transform] hover:-translate-y-0.5 hover:border-[var(--border-strong)] hover:shadow-[var(--shadow-sm)]",
+        urgent && "border-amber-300/80 bg-[linear-gradient(145deg,#fff,var(--surface),#fffbeb)]",
         className,
       )}
     >
+      <span
+        className={cn(
+          "absolute inset-y-4 left-0 w-[3px] rounded-r-full bg-[var(--navy-800)]",
+          urgent && "bg-[var(--warning)]",
+        )}
+      />
       <p className="text-[12px] font-medium text-[var(--text-muted)] leading-snug">
         {label}
       </p>
       <p
         className={cn(
-          "mt-2 text-[22px] font-semibold tracking-tight tabular-nums leading-none",
+          "mt-3 text-[25px] font-semibold tracking-[-0.035em] tabular-nums leading-none",
           urgent ? "text-[var(--warning)]" : "text-[var(--navy-950)]",
         )}
       >
@@ -34,59 +40,43 @@ export function MetricItem({
   );
 }
 
-export function DefinitionList({
-  items,
-  className,
-}: {
-  items: { label: string; value: React.ReactNode }[];
-  className?: string;
-}) {
-  return (
-    <dl
-      className={cn(
-        "grid gap-0 sm:grid-cols-2",
-        className,
-      )}
-    >
-      {items.map((item) => (
-        <div
-          key={item.label}
-          className="border-b border-[var(--border)] px-5 py-4 sm:odd:border-r"
-        >
-          <dt className="text-[12px] font-medium text-[var(--text-muted)]">
-            {item.label}
-          </dt>
-          <dd className="mt-1.5 text-[14px] font-semibold text-[var(--text)]">
-            {item.value}
-          </dd>
-        </div>
-      ))}
-    </dl>
-  );
-}
-
 export function IdentityStrip({
   cells,
+  compact = false,
 }: {
   cells: {
     icon: React.ComponentType<{ className?: string }>;
     label: string;
     value: string;
   }[];
+  compact?: boolean;
 }) {
   return (
-    <div className="overflow-hidden rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)]">
+    <div className="overflow-hidden rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] shadow-[var(--shadow-xs)]">
       <div className="grid divide-y divide-[var(--border)] sm:grid-cols-2 sm:divide-x sm:divide-y-0 xl:grid-cols-5 xl:divide-x">
         {cells.map((cell) => {
           const Icon = cell.icon;
           return (
-            <div key={cell.label} className="flex gap-2.5 px-4 py-3.5">
-              <Icon className="mt-0.5 size-3.5 shrink-0 text-[var(--text-faint)]" />
+            <div
+              key={cell.label}
+              className={cn(
+                "flex gap-3 transition-colors hover:bg-[var(--surface-muted)]",
+                compact ? "px-3 py-2.5" : "px-4 py-4",
+              )}
+            >
+              <span
+                className={cn(
+                  "grid shrink-0 place-items-center rounded-[var(--radius-sm)] bg-[var(--surface-muted)]",
+                  compact ? "size-7" : "size-8",
+                )}
+              >
+                <Icon className="size-3.5 text-[var(--navy-700)]" />
+              </span>
               <div className="min-w-0">
                 <span className="block text-[11px] font-medium text-[var(--text-muted)]">
                   {cell.label}
                 </span>
-                <b className="mt-1 block truncate text-[13px] font-semibold text-[var(--text)]">
+                <b className={cn("block truncate text-[13px] font-semibold text-[var(--text)]", compact ? "mt-0.5" : "mt-1")}>
                   {cell.value}
                 </b>
               </div>
@@ -117,7 +107,8 @@ export function DocumentCategoryCard({
     <button
       type="button"
       onClick={onOpen}
-      className="flex min-h-[132px] flex-col rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] p-4 text-left transition-colors hover:border-[var(--slate-300)] hover:bg-[var(--surface-muted)]"
+      aria-label={`Ouvrir la catégorie ${code} — ${title}`}
+      className="group flex min-h-[164px] flex-col rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] p-5 text-left shadow-[var(--shadow-xs)] transition-all hover:-translate-y-0.5 hover:border-[var(--border-strong)] hover:shadow-[var(--shadow-sm)]"
     >
       <p className="text-[12px] font-semibold tabular-nums text-[var(--accent)]">
         {code} —
@@ -141,78 +132,10 @@ export function DocumentCategoryCard({
                 : ""}
           </p>
         </div>
-        <span className="text-[12px] font-semibold text-[var(--navy-900)]">
+        <span className="text-[12px] font-semibold text-[var(--navy-900)] transition-transform group-hover:translate-x-0.5">
           Ouvrir
         </span>
       </div>
     </button>
-  );
-}
-
-export function CourtTimeline({
-  events,
-}: {
-  events: {
-    id: string;
-    dateLabel: string;
-    type: React.ReactNode;
-    title: string;
-    result?: string;
-    nextAction?: string;
-    past?: boolean;
-    needsFollowUp?: boolean;
-  }[];
-}) {
-  if (events.length === 0) {
-    return (
-      <p className="px-5 py-6 text-sm text-[var(--text-muted)]">
-        Aucun événement enregistré.
-      </p>
-    );
-  }
-
-  return (
-    <div className="space-y-0 px-5 py-5">
-      {events.map((h) => (
-        <div key={h.id} className="relative flex gap-4 pb-6 last:pb-0">
-          <div className="flex w-[7.5rem] shrink-0 flex-col items-end pt-0.5">
-            <span className="text-[12px] font-semibold tabular-nums text-[var(--text)]">
-              {h.dateLabel}
-            </span>
-            {h.past && (
-              <span className="mt-1 text-right text-[10px] font-medium text-[var(--warning)]">
-                Date passée
-              </span>
-            )}
-          </div>
-          <div className="relative flex flex-col items-center">
-            <span className="mt-1.5 size-2 rounded-full bg-[var(--navy-900)] ring-2 ring-[var(--canvas)]" />
-            <span className="mt-1 w-px flex-1 bg-[var(--border)]" />
-          </div>
-          <div className="min-w-0 flex-1 pb-1">
-            <div className="flex flex-wrap items-center gap-2">{h.type}</div>
-            <p className="mt-2 text-[14px] font-semibold text-[var(--text)]">
-              {h.title}
-            </p>
-            {h.result && (
-              <p className="mt-1 text-[12px] text-[var(--text-muted)]">
-                Résultat : {h.result}
-              </p>
-            )}
-            {h.nextAction && (
-              <p className="mt-1 text-[12px] text-[var(--text-muted)]">
-                Suite : {h.nextAction}
-              </p>
-            )}
-            {h.needsFollowUp && (
-              <p className="mt-2 rounded-[var(--radius-sm)] border border-amber-200 bg-amber-50 px-3 py-2 text-[12px] font-medium text-amber-900">
-                Cette date est passée. Le compte rendu ou la nouvelle situation
-                doit être renseigné.
-              </p>
-            )}
-          </div>
-        </div>
-      ))}
-    </div>
   );
 }

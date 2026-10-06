@@ -80,7 +80,7 @@ export class AuthService {
       },
     });
     const accessToken = await this.jwt.signAsync(
-      { sub: user.id, email: user.email },
+      { sub: user.id, email: user.email, sessionId: tokenId },
       {
         secret: this.config.getOrThrow<string>("JWT_ACCESS_SECRET"),
         expiresIn: accessTtl as never,

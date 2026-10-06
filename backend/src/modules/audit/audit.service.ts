@@ -15,8 +15,8 @@ export class AuditService {
     metadata?: Prisma.InputJsonValue;
     ipAddress?: string;
     userAgent?: string;
-  }) {
-    return this.prisma.auditLog.create({ data: input });
+  }, database: PrismaService | Prisma.TransactionClient = this.prisma) {
+    return database.auditLog.create({ data: input });
   }
   list(page = 1, pageSize = 50) {
     return this.prisma.auditLog.findMany({

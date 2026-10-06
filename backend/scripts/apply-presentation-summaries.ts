@@ -2,27 +2,16 @@ import "dotenv/config";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "../src/generated/prisma/client.js";
 import {
-  PRINCIPAL_REFERENCES,
   terrainSummaries,
 } from "../src/modules/requisitions/terrain-summaries.js";
 
 /**
- * Apply factual presentation summaries + assign demo USER to all 6 principals.
+ * Apply factual presentation summaries without changing user access.
  * Skips dossiers already manually updated by ADMIN (lastManuallyUpdatedAt set).
  */
 const prisma = new PrismaClient({
   adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }),
 });
-
-const admin = await prisma.user.findFirst({
-  where: { email: "admin@naala-foncier.ma" },
-});
-const demoUser = await prisma.user.findFirst({
-  where: { email: "user@naala-foncier.ma" },
-});
-if (!admin || !demoUser) {
-  throw new Error("Comptes admin/user introuvables — lancer le seed d’abord.");
-}
 
 const importedAt = new Date().toISOString();
 
@@ -81,27 +70,6 @@ for (const s of terrainSummaries) {
     },
   });
   console.log(`summary ${updated.reference}`);
-}
-
-await prisma.userRequisitionAccess.deleteMany({
-  where: { userId: demoUser.id },
-});
-for (const reference of PRINCIPAL_REFERENCES) {
-  const req = await prisma.requisition.findFirst({
-    where: { reference, deletedAt: null },
-  });
-  if (!req) {
-    console.warn(`missing ${reference}`);
-    continue;
-  }
-  await prisma.userRequisitionAccess.create({
-    data: {
-      userId: demoUser.id,
-      requisitionId: req.id,
-      createdById: admin.id,
-    },
-  });
-  console.log(`assigned ${reference} → demo USER`);
 }
 
 console.log("done");

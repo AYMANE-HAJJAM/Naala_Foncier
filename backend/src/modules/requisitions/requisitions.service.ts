@@ -3,6 +3,7 @@ import { AccessScopeService } from "../../shared/access/access-scope.service.js"
 import type { AuthUser } from "../../shared/authentication/auth-user.js";
 import { PrismaService } from "../../shared/database/prisma.service.js";
 import { AuditService } from "../audit/audit.service.js";
+import { NotificationsService } from "../notifications/notifications.service.js";
 import type { CreateRequisitionDto, RequisitionQueryDto, UpdateRequisitionDto } from "./dto/requisition.dto.js";
 import { presentRequisition } from "./requisitions.presenter.js";
 
@@ -12,6 +13,7 @@ export class RequisitionsService {
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
     private readonly access: AccessScopeService,
+    private readonly notifications: NotificationsService,
   ) {}
 
   private include = {
@@ -175,8 +177,23 @@ export class RequisitionsService {
         data: { userId, requisitionId, createdById: actorId },
         include: { user: true, createdBy: true, requisition: true },
       });
-      await tx.auditLog.create({ data: { actorUserId: actorId, action: "REQUISITION_ACCESS_GRANTED", entityType: "UserRequisitionAccess", entityId: access.id, newValues: { userId, requisitionId }, metadata: { requisitionId } } });
-      await tx.notification.create({ data: { userId, type: "TERRAIN_ASSIGNED", title: "Nouveau terrain assigné", message: `Le terrain ${requisition.reference} vous a été attribué.`, requisitionId, relatedEntityType: "Requisition", relatedEntityId: requisitionId, dedupeKey: `TERRAIN_ASSIGNED:${userId}:${requisitionId}` } });
+      await this.audit.write(
+        { actorUserId: actorId, action: "REQUISITION_ACCESS_GRANTED", entityType: "UserRequisitionAccess", entityId: access.id, newValues: { userId, requisitionId }, metadata: { requisitionId } },
+        tx,
+      );
+      await this.notifications.deliver(
+        {
+          recipientIds: [userId],
+          type: "TERRAIN_ASSIGNED",
+          title: "Nouveau terrain assigné",
+          message: `Le terrain ${requisition.reference} vous a été attribué.`,
+          requisitionId,
+          relatedEntityType: "Requisition",
+          relatedEntityId: requisitionId,
+          dedupeKey: (recipientId) => `TERRAIN_ASSIGNED:${recipientId}:${requisitionId}`,
+        },
+        tx,
+      );
       return access;
     });
   }
@@ -186,14 +203,19 @@ export class RequisitionsService {
       where: { userId_requisitionId: { userId, requisitionId } },
     });
     if (!existing) throw new NotFoundException("Affectation introuvable.");
-    await this.prisma.userRequisitionAccess.delete({ where: { id: existing.id } });
-    await this.audit.write({
-      actorUserId: actorId,
-      action: "REQUISITION_ACCESS_REVOKED",
-      entityType: "UserRequisitionAccess",
-      entityId: existing.id,
-      oldValues: { userId, requisitionId },
-      metadata: { requisitionId },
+    await this.prisma.$transaction(async (tx) => {
+      await tx.userRequisitionAccess.delete({ where: { id: existing.id } });
+      await this.audit.write(
+        {
+          actorUserId: actorId,
+          action: "REQUISITION_ACCESS_REVOKED",
+          entityType: "UserRequisitionAccess",
+          entityId: existing.id,
+          oldValues: { userId, requisitionId },
+          metadata: { requisitionId },
+        },
+        tx,
+      );
     });
   }
 }

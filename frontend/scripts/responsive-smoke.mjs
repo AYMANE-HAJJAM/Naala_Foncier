@@ -1,27 +1,39 @@
-import { readFileSync, mkdirSync } from "node:fs";
+import { existsSync, readFileSync, mkdirSync } from "node:fs";
 import { resolve } from "node:path";
 import dotenv from "../../backend/node_modules/dotenv/lib/main.js";
 import { chromium } from "playwright-core";
 
 const backendEnv = dotenv.parse(
-  readFileSync(resolve("../backend/.env"), "utf8"),
+  readFileSync(resolve("../.phase-c-qa.env"), "utf8"),
 );
-const email = backendEnv.INITIAL_ADMIN_EMAIL;
-const password = backendEnv.INITIAL_ADMIN_PASSWORD;
+if (backendEnv.QA_DATABASE !== "naala_phase_c_qa" || new URL(backendEnv.DATABASE_URL).pathname !== "/naala_phase_c_qa") {
+  throw new Error("Base QA isolée requise.");
+}
+const email = backendEnv.QA_ADMIN_EMAIL;
+const password = backendEnv.QA_ADMIN_PASSWORD;
 if (!email || !password) throw new Error("Identifiants admin locaux absents.");
 
 const output = resolve("artifacts/responsive-smoke");
 mkdirSync(output, { recursive: true });
 
+const browserExecutable = [
+  "C:/Program Files/Microsoft/Edge/Application/msedge.exe",
+  "C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe",
+  "C:/Program Files/Google/Chrome/Application/chrome.exe",
+].find(existsSync);
+
+if (!browserExecutable) throw new Error("Navigateur Chromium local absent.");
+
 const browser = await chromium.launch({
-  executablePath: "C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe",
+  executablePath: browserExecutable,
   headless: true,
 });
 
 const viewports = [
   { name: "mobile", width: 390, height: 844 },
   { name: "tablet", width: 768, height: 1024 },
-  { name: "desktop", width: 1366, height: 768 },
+  { name: "laptop", width: 1024, height: 768 },
+  { name: "desktop", width: 1440, height: 900 },
 ];
 
 const routes = ["/dashboard", "/requisitions", "/documents", "/calendrier", "/rapports", "/administration/utilisateurs", "/administration/affectations"];
@@ -49,12 +61,20 @@ for (const viewport of viewports) {
   });
   page.on("pageerror", (error) => consoleErrors.push(error.message));
   page.on("response", (response) => {
-    if (response.status() >= 400 && !response.url().endsWith("/favicon.ico")) {
+    const expectedAnonymousRefresh =
+      response.status() === 401 &&
+      response.url().endsWith("/api/auth/refresh") &&
+      page.url().includes("/login");
+    if (
+      response.status() >= 400 &&
+      !response.url().endsWith("/favicon.ico") &&
+      !expectedAnonymousRefresh
+    ) {
       httpErrors.push(`${response.status()} ${response.url()}`);
     }
   });
 
-  await page.goto("http://localhost:3000/login", { waitUntil: "domcontentloaded" });
+  await page.goto("http://localhost:3200/login", { waitUntil: "domcontentloaded" });
   await page.waitForTimeout(1_000);
   await page.locator('input[autocomplete="email"]').fill(email);
   await page.locator('input[autocomplete="current-password"]').fill(password);
@@ -68,7 +88,7 @@ for (const viewport of viewports) {
 
   let terrainRoute = null;
   for (const route of routes) {
-    await page.goto(`http://localhost:3000${route}`, { waitUntil: "domcontentloaded" });
+    await page.goto(`http://localhost:3200${route}`, { waitUntil: "domcontentloaded" });
     await waitForWorkspace(page);
     if (route === "/requisitions") {
       const terrainLink = page.locator('a[href^="/requisitions/"]').first();
@@ -87,7 +107,7 @@ for (const viewport of viewports) {
   }
 
   if (terrainRoute) {
-    await page.goto(`http://localhost:3000${terrainRoute}`, { waitUntil: "domcontentloaded" });
+    await page.goto(`http://localhost:3200${terrainRoute}`, { waitUntil: "domcontentloaded" });
     await waitForWorkspace(page);
     const dimensions = await page.evaluate(() => ({
       clientWidth: document.documentElement.clientWidth,
@@ -98,7 +118,7 @@ for (const viewport of viewports) {
     }
     await page.screenshot({ path: resolve(output, `${viewport.name}-terrain.png`), fullPage: true });
     for (const tab of ["documents", "oppositions", "judiciaire", "calendrier", "rapports"]) {
-      await page.goto(`http://localhost:3000${terrainRoute}?tab=${tab}`, { waitUntil: "domcontentloaded" });
+      await page.goto(`http://localhost:3200${terrainRoute}?tab=${tab}`, { waitUntil: "domcontentloaded" });
       await waitForWorkspace(page);
       const tabDimensions = await page.evaluate(() => ({ clientWidth: document.documentElement.clientWidth, scrollWidth: document.documentElement.scrollWidth }));
       if (tabDimensions.scrollWidth > tabDimensions.clientWidth + 1) failures.push(`${viewport.name} terrain-${tab}: overflow ${tabDimensions.scrollWidth}/${tabDimensions.clientWidth}`);
@@ -122,5 +142,5 @@ if (failures.length) {
   console.error(failures.join("\n"));
   process.exitCode = 1;
 } else {
-  console.log("Responsive smoke: PASS (390x844, 768x1024, 1366x768)");
+  console.log("Responsive smoke: PASS (390x844, 768x1024, 1024x768, 1440x900)");
 }

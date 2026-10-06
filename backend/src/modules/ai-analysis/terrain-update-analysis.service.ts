@@ -301,8 +301,8 @@ export class TerrainUpdateAnalysisService {
       const code =
         err instanceof DocumentAnalysisProviderError ? err.code : "AI_ANALYSIS_FAILED";
       const message =
-        err instanceof Error ? err.message : "L’analyse automatique n’a pas pu être terminée.";
-      this.logger.error(`Terrain update analysis ${runId} failed: ${message}`);
+        err instanceof DocumentAnalysisProviderError ? err.message : "L’analyse automatique n’a pas pu être terminée.";
+      this.logger.error(`Terrain update analysis ${runId} failed: ${code}`);
       await this.failRun(runId, code, message);
     }
   }

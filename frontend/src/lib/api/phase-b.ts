@@ -7,8 +7,6 @@ const json = (method: string, body?: unknown): RequestInit => ({
 
 export const createLegalCase = (body: Record<string, unknown>) =>
   customFetcher("/api/legal-cases", json("POST", body));
-export const updateLegalCase = (id: string, body: Record<string, unknown>) =>
-  customFetcher(`/api/legal-cases/${id}`, json("PATCH", body));
 export const createTerrainEvent = (body: Record<string, unknown>) =>
   customFetcher("/api/terrain-events", json("POST", body));
 export const rescheduleTerrainEvent = (id: string, body: Record<string, unknown>) =>

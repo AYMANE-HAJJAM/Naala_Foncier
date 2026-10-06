@@ -283,7 +283,7 @@ export class GitHubModelsDocumentAnalysisProvider implements DocumentAnalysisPro
         throw err;
       }
       this.logger.error(
-        `GitHub Models analysis failed: ${err instanceof Error ? err.message : "unknown"}`,
+        "GitHub Models analysis failed: unexpected provider error",
       );
       throw new DocumentAnalysisProviderError(
         "AI_ANALYSIS_FAILED",

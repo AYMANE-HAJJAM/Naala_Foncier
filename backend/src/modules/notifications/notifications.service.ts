@@ -1,6 +1,18 @@
 import { Injectable } from "@nestjs/common";
 import { PrismaService } from "../../shared/database/prisma.service.js";
 import { presentNotification } from "../shared/presenters.js";
+import type { Prisma } from "../../generated/prisma/client.js";
+
+type NotificationDelivery = {
+  recipientIds: string[];
+  type: string;
+  title: string;
+  message: string;
+  requisitionId?: string | null;
+  relatedEntityType?: string;
+  relatedEntityId?: string;
+  dedupeKey?: (userId: string) => string | undefined;
+};
 
 @Injectable()
 export class NotificationsService {
@@ -31,6 +43,27 @@ export class NotificationsService {
     return { updated: result.count };
   }
 
+  async deliver(
+    input: NotificationDelivery,
+    database: PrismaService | Prisma.TransactionClient = this.p,
+  ) {
+    const recipientIds = [...new Set(input.recipientIds)];
+    if (!recipientIds.length) return { count: 0 };
+    return database.notification.createMany({
+      data: recipientIds.map((userId) => ({
+        userId,
+        type: input.type,
+        title: input.title,
+        message: input.message,
+        requisitionId: input.requisitionId,
+        relatedEntityType: input.relatedEntityType,
+        relatedEntityId: input.relatedEntityId,
+        dedupeKey: input.dedupeKey?.(userId),
+      })),
+      skipDuplicates: true,
+    });
+  }
+
   async notifyAdminsOfTerrainUpdateProposals(
     requisitionId: string,
     reference: string,
@@ -47,18 +80,15 @@ export class NotificationsService {
     });
     if (!admins.length || count <= 0) return;
 
-    await this.p.notification.createMany({
-      data: admins.map((a) => ({
-        userId: a.id,
-        type: "AI_UPDATE_REVIEW",
-        title: "Nouvelles informations détectées",
-        message: `${count} mise${count > 1 ? "s" : ""} à jour ${count > 1 ? "sont" : "est"} à vérifier pour ${reference}.`,
-        requisitionId,
-        relatedEntityType: "Document",
-        relatedEntityId: documentId,
-        dedupeKey: `AI_UPDATE_REVIEW:${a.id}:${documentId}`,
-      })),
-      skipDuplicates: true,
+    await this.deliver({
+      recipientIds: admins.map((admin) => admin.id),
+      type: "AI_UPDATE_REVIEW",
+      title: "Nouvelles informations détectées",
+      message: `${count} mise${count > 1 ? "s" : ""} à jour ${count > 1 ? "sont" : "est"} à vérifier pour ${reference}.`,
+      requisitionId,
+      relatedEntityType: "Document",
+      relatedEntityId: documentId,
+      dedupeKey: (userId) => `AI_UPDATE_REVIEW:${userId}:${documentId}`,
     });
   }
 
@@ -76,18 +106,16 @@ export class NotificationsService {
     const userIds = [...new Set(access.map((a) => a.userId))];
     if (!userIds.length) return;
 
-    await this.p.notification.createMany({
-      data: userIds.map((userId) => ({
-        userId,
-        type: "TERRAIN_UPDATE_CONFIRMED",
-        title,
-        message: `${reference} — ${message}`,
-        requisitionId,
-        relatedEntityType: entityId ? "TerrainEvent" : undefined,
-        relatedEntityId: entityId,
-        dedupeKey: entityId ? `TERRAIN_UPDATE_CONFIRMED:${userId}:${entityId}` : undefined,
-      })),
-      skipDuplicates: true,
+    await this.deliver({
+      recipientIds: userIds,
+      type: "TERRAIN_UPDATE_CONFIRMED",
+      title,
+      message: `${reference} — ${message}`,
+      requisitionId,
+      relatedEntityType: entityId ? "TerrainEvent" : undefined,
+      relatedEntityId: entityId,
+      dedupeKey: (userId) =>
+        entityId ? `TERRAIN_UPDATE_CONFIRMED:${userId}:${entityId}` : undefined,
     });
   }
 }

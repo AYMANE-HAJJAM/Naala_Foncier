@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { Plus } from "lucide-react";
 import type { Requisition } from "@/types/domain";
 import { Button } from "@/components/ui/button";
@@ -9,39 +10,25 @@ import { formatDate } from "@/lib/utils";
 import { useAuth } from "@/providers/auth-provider";
 import {
   createTerrainEvent,
-  getRequisitionEvents,
   type TerrainEventDto,
 } from "@/lib/api/phase1";
 import { toast } from "sonner";
 import { CalendarWorkspace } from "@/features/calendar/calendar-workspace";
+import { dateOnlyToIsoAtNoonUtc, localDateKey } from "@/lib/domain/date";
+import { uiErrorMessage } from "@/lib/api/error-message";
+import {
+  getGetRequisitionEventsQueryKey,
+  useGetRequisitionEvents,
+} from "@/generated/api/naala";
 
 export function TerrainTimelineTab({ r }: { r: Requisition }) {
   const { isAdmin: admin } = useAuth();
-  const [events, setEvents] = useState<TerrainEventDto[] | null>(null);
+  const queryClient = useQueryClient();
+  const eventsQuery = useGetRequisitionEvents(r.id);
+  const events = (eventsQuery.data?.data ?? []) as unknown as TerrainEventDto[];
   const [title, setTitle] = useState("");
-  const [occurredAt, setOccurredAt] = useState(
-    new Date().toISOString().slice(0, 10),
-  );
+  const [occurredAt, setOccurredAt] = useState(localDateKey());
   const [open, setOpen] = useState(false);
-  const [, startTransition] = useTransition();
-
-  useEffect(() => {
-    let cancelled = false;
-    getRequisitionEvents(r.id)
-      .then((rows) => {
-        if (cancelled) return;
-        startTransition(() => {
-          setEvents(Array.isArray(rows) ? rows : []);
-        });
-      })
-      .catch(() => {
-        if (cancelled) return;
-        startTransition(() => setEvents([]));
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [r.id, startTransition]);
 
   return (
     <div className="space-y-4">
@@ -79,18 +66,17 @@ export function TerrainTimelineTab({ r }: { r: Requisition }) {
                   await createTerrainEvent({
                     requisitionId: r.id,
                     type: "GENERAL_UPDATE",
-                    occurredAt: new Date(
-                      `${occurredAt}T12:00:00.000Z`,
-                    ).toISOString(),
+                    occurredAt: dateOnlyToIsoAtNoonUtc(occurredAt),
                     title: title.trim(),
                   });
                   setTitle("");
                   setOpen(false);
                   toast.success("Mise à jour ajoutée");
-                  const rows = await getRequisitionEvents(r.id);
-                  setEvents(Array.isArray(rows) ? rows : []);
-                } catch {
-                  toast.error("Impossible d’ajouter l’événement");
+                  await queryClient.invalidateQueries({
+                    queryKey: getGetRequisitionEventsQueryKey(r.id),
+                  });
+                } catch (error) {
+                  toast.error(uiErrorMessage(error, "Impossible d’ajouter l’événement"));
                 }
               }}
             >
@@ -100,17 +86,17 @@ export function TerrainTimelineTab({ r }: { r: Requisition }) {
         </div>
       )}
 
-      {events === null ? (
+      {eventsQuery.isLoading ? (
         <Skeleton className="h-40" />
       ) : events.length === 0 ? (
         <p className="text-[13px] text-[var(--text-muted)]">
           Aucun événement validé pour l’instant.
         </p>
       ) : (
-        <ol className="relative ml-2 space-y-0 border-l border-[var(--border)]">
+        <ol className="relative space-y-0 rounded-[var(--radius-lg)] border border-[var(--border)] bg-white px-5 py-2 shadow-[var(--shadow-xs)] before:absolute before:bottom-6 before:left-[29px] before:top-6 before:w-px before:bg-[var(--border)]">
           {events.map((e) => (
-            <li key={e.id} className="relative pb-6 pl-5">
-              <span className="absolute -left-[5px] top-1.5 size-2.5 rounded-full bg-[var(--navy-800)]" />
+            <li key={e.id} className="relative py-4 pl-7">
+              <span className="absolute left-0 top-[22px] size-2.5 rounded-full bg-[var(--navy-800)] ring-[3px] ring-white" />
               <p className="text-[12px] font-medium tabular-nums text-[var(--text-muted)]">
                 {formatDate(e.occurredAt)}
               </p>

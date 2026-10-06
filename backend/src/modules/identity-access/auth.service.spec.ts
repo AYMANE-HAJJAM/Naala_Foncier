@@ -5,7 +5,7 @@ jest.mock("../audit/audit.service.js", () => ({
   AuditService: class AuditService {},
 }));
 
-import { createHash } from "node:crypto";
+import { createHash, randomBytes } from "node:crypto";
 import { BadRequestException, UnauthorizedException } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { JwtService } from "@nestjs/jwt";
@@ -13,12 +13,14 @@ import { hash } from "bcryptjs";
 import { jest } from "@jest/globals";
 import { AuthService } from "./auth.service.js";
 
+const unitTestPassword = randomBytes(24).toString("hex");
+
 describe("AuthService", () => {
-  const password = "NaalaDev2026!";
+  const password = unitTestPassword;
   let passwordHash: string;
   const user = {
     id: "user-1",
-    email: "admin@naala-foncier.ma",
+    email: "admin@example.test",
     firstName: "Omar",
     lastName: "Alaoui",
     isActive: true,

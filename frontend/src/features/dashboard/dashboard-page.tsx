@@ -14,6 +14,7 @@ import type {
   NotificationItem,
   Requisition,
 } from "@/types/domain";
+import { localDateKey } from "@/lib/domain/date";
 
 /** ADMIN dashboard only — USER uses UserDashboardPage on /dashboard */
 export function DashboardPage() {
@@ -64,7 +65,7 @@ export function DashboardPage() {
   };
 
   const reqs = data.requisitions ?? [];
-  const today = new Date().toISOString().slice(0, 10);
+  const today = localDateKey();
   const atCourt = reqs.filter((r) =>
     /tribunal|audience|délibr/i.test(r.status),
   ).length;
@@ -85,7 +86,7 @@ export function DashboardPage() {
         subtitle="Suivi des réquisitions, documents et échéances judiciaires."
       />
 
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
         <MetricItem label="Réquisitions actives" value={String(reqs.length)} />
         <MetricItem label="Dossiers au tribunal" value={String(atCourt)} />
         <MetricItem label="Prochaines audiences" value={String(upcoming)} />
@@ -123,7 +124,7 @@ export function DashboardPage() {
       )}
 
       <div className="mt-8 grid gap-6 xl:grid-cols-[1.45fr_.85fr]">
-        <Card>
+        <Card className="overflow-hidden">
           <SectionHeader
             title="Agenda judiciaire"
             subtitle="Y compris dates passées à actualiser"
@@ -137,7 +138,7 @@ export function DashboardPage() {
             {(data.agenda ?? []).slice(0, 8).map((a) => {
               const past = a.date != null && a.date < today;
               return (
-                <li key={a.id} className="px-5 py-3">
+                <li key={a.id} className="px-5 py-3.5 transition-colors hover:bg-[var(--surface-muted)]">
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
                       <p className="text-[14px] font-semibold">{a.title}</p>
@@ -167,7 +168,7 @@ export function DashboardPage() {
           </ul>
         </Card>
 
-        <Card>
+        <Card className="overflow-hidden">
           <SectionHeader title="Terrains nécessitant une mise à jour" />
           <ul className="divide-y divide-[var(--border)]">
             {[...reqs]
@@ -178,7 +179,7 @@ export function DashboardPage() {
               .map((r) => (
                 <li
                   key={r.id}
-                  className="flex items-center justify-between gap-3 px-5 py-3"
+                  className="flex items-center justify-between gap-3 px-5 py-3.5 transition-colors hover:bg-[var(--surface-muted)]"
                 >
                   <div className="min-w-0">
                     <p className="text-[13px] font-semibold">{r.number}</p>
@@ -203,13 +204,13 @@ export function DashboardPage() {
       </div>
 
       <div className="mt-6 grid gap-6 xl:grid-cols-2">
-        <Card>
+        <Card className="overflow-hidden">
           <SectionHeader title="Documents récents" />
           <ul className="divide-y divide-[var(--border)]">
             {recentDocs.map((d) => (
               <li
                 key={d.id}
-                className="flex items-center justify-between gap-3 px-5 py-3 text-sm"
+                className="flex items-center justify-between gap-3 px-5 py-3.5 text-sm transition-colors hover:bg-[var(--surface-muted)]"
               >
                 <div className="min-w-0">
                   <b className="font-semibold">{d.title}</b>
@@ -229,11 +230,11 @@ export function DashboardPage() {
             )}
           </ul>
         </Card>
-        <Card>
+        <Card className="overflow-hidden">
           <SectionHeader title="Activité récente" />
           <ul className="divide-y divide-[var(--border)]">
             {(data.activity ?? []).slice(0, 8).map((a) => (
-              <li key={a.id} className="px-5 py-3 text-sm">
+              <li key={a.id} className="px-5 py-3.5 text-sm transition-colors hover:bg-[var(--surface-muted)]">
                 <b className="font-semibold">{a.title}</b>
                 <p className="mt-0.5 text-[12px] text-[var(--text-muted)]">
                   {a.detail} · {a.user}

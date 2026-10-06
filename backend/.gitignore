@@ -3,7 +3,7 @@ dist/
 coverage/
 *.tsbuildinfo
 .env
-storage/
-uploads/
+/storage/
+/uploads/
 .generated/
 private-import/

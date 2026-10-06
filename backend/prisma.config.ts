@@ -1,5 +1,5 @@
 import "dotenv/config";
-import { defineConfig, env } from "prisma/config";
+import { defineConfig } from "prisma/config";
 
 // Prisma CLI (migrate/generate) uses the direct Neon URL.
 // Runtime Prisma Client uses DATABASE_URL via the pg adapter.

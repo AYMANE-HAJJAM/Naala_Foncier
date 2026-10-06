@@ -54,8 +54,8 @@ export function RequisitionDetailPage({ id }: { id: string }) {
   const tab = Math.max(0, slugs.indexOf(sp.get("tab") ?? "overview"));
   const [docOpen, setDocOpen] = useState(false);
   const [uploadCategory, setUploadCategory] = useState<string | undefined>();
-  const { user, isAdmin: admin } = useAuth();
-  const canUpload = Boolean(user?.permissions.includes("document.upload"));
+  const { isAdmin: admin, capabilities } = useAuth();
+  const canUpload = capabilities.canUploadDocument;
   const { data, isLoading, isError, error } = useGetRequisition(id);
 
   const openUpload = (categoryKey?: string) => {
@@ -111,9 +111,11 @@ export function RequisitionDetailPage({ id }: { id: string }) {
         ]}
       />
 
-      <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+      <div className="relative mb-5 flex flex-col gap-5 overflow-hidden rounded-[var(--radius-lg)] border border-[var(--border)] bg-[linear-gradient(135deg,#fff_0%,var(--surface-muted)_100%)] p-5 shadow-[var(--shadow-xs)] sm:flex-row sm:items-start sm:justify-between sm:p-6">
+        <span className="absolute inset-y-0 left-0 w-1 bg-[linear-gradient(180deg,var(--navy-800),var(--accent))]" />
         <div className="min-w-0">
-          <h1 className="text-[28px] font-semibold tracking-tight text-[var(--navy-950)] leading-tight">
+          <p className="nf-eyebrow mb-2">Dossier foncier</p>
+          <h1 className="text-[25px] font-semibold tracking-[-0.025em] text-[var(--navy-950)] leading-tight sm:text-[30px]">
             {r.number} — {r.property}
           </h1>
           <p className="mt-2 text-[12px] text-[var(--text-muted)]">
@@ -131,8 +133,9 @@ export function RequisitionDetailPage({ id }: { id: string }) {
         </div>
       </div>
 
-      <div className="mb-6">
+      <div className="mb-7">
         <IdentityStrip
+          compact={tab === 0}
           cells={[
             {
               icon: MapPin,
@@ -169,16 +172,16 @@ export function RequisitionDetailPage({ id }: { id: string }) {
         </div>
       )}
 
-      <div className="mb-6 flex gap-1 overflow-x-auto border-b border-[var(--border)]">
+      <div className="scrollbar-thin mb-7 flex gap-1 overflow-x-auto rounded-[var(--radius-lg)] border border-[var(--border)] bg-white p-1.5 shadow-[var(--shadow-xs)]">
         {tabs.map((x, i) => (
           <button
             key={x}
             onClick={() => router.replace(`?tab=${slugs[i]}`, { scroll: false })}
             className={cn(
-              "shrink-0 border-b-2 px-3.5 py-2.5 text-[13px] font-semibold transition-colors -mb-px",
+              "shrink-0 rounded-[var(--radius-md)] px-3.5 py-2.5 text-[12px] font-semibold transition-all",
               tab === i
-                ? "border-[var(--navy-950)] text-[var(--navy-950)]"
-                : "border-transparent text-[var(--text-muted)] hover:text-[var(--text)]",
+                ? "bg-[var(--navy-950)] text-white shadow-[0_2px_8px_rgba(11,23,40,.16)]"
+                : "text-[var(--text-muted)] hover:bg-[var(--surface-muted)] hover:text-[var(--text)]",
             )}
           >
             {x}

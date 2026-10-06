@@ -8,7 +8,7 @@ export default tseslint.config(
     languageOptions: {
       parserOptions: {
         projectService: {
-          maximumDefaultProjectFileMatchCount_THIS_WILL_SLOW_DOWN_LINTING: 12,
+          maximumDefaultProjectFileMatchCount_THIS_WILL_SLOW_DOWN_LINTING: 20,
           allowDefaultProject: [
             "src/modules/*.spec.ts",
             "src/modules/*/*.spec.ts",

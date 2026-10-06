@@ -32,19 +32,20 @@ export function HistoryTab({ r }: { r: Requisition }) {
         title="Historique"
         subtitle="Actions enregistrées sur ce dossier"
       />
-      <div className="px-5 py-5">
+      <div className="px-5 py-5 sm:px-6">
         {items.length === 0 ? (
           <p className="text-sm text-[var(--text-muted)]">
             Aucune entrée d’historique pour ce dossier.
           </p>
         ) : (
-          <div className="space-y-0">
+          <div className="relative space-y-0 before:absolute before:bottom-5 before:left-[5px] before:top-5 before:w-px before:bg-[var(--border)]">
             {items.map((activity) => (
               <div
-                className="relative flex gap-4 border-b border-[var(--border)] py-4 last:border-0"
+                className="relative grid gap-2 py-4 pl-7 sm:grid-cols-[120px_1fr] sm:gap-5"
                 key={activity.id}
               >
-                <div className="w-28 shrink-0 text-[12px] font-semibold tabular-nums text-[var(--text)]">
+                <span className="absolute left-0 top-[22px] size-[11px] rounded-full border-[3px] border-white bg-[var(--accent)] shadow-[0_0_0_1px_var(--border)]" />
+                <div className="shrink-0 text-[11px] font-semibold tabular-nums text-[var(--text-muted)]">
                   {formatDate(activity.date.slice(0, 10))}
                 </div>
                 <div className="min-w-0 flex-1">

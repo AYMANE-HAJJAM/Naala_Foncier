@@ -3,7 +3,7 @@ import { PrismaService } from "../../shared/database/prisma.service.js";
 import type { DataFreshnessCode, TerrainEventType } from "../../generated/prisma/enums.js";
 import type { Prisma } from "../../generated/prisma/client.js";
 
-const JUDICIAL_TYPES = new Set<TerrainEventType>([
+const JUDICIAL_TYPES = [
   "COURT_TRANSMISSION",
   "COURT_CASE_CREATED",
   "COURT_HEARING_SCHEDULED",
@@ -14,7 +14,7 @@ const JUDICIAL_TYPES = new Set<TerrainEventType>([
   "COURT_APPEAL",
   "COURT_CLOSED",
   "COURT_OTHER",
-]);
+] satisfies TerrainEventType[];
 
 function mapFreshness(raw?: string | null): DataFreshnessCode {
   const v = (raw ?? "").toLowerCase();
@@ -34,26 +34,39 @@ export class StatusSnapshotService {
   async refreshFromEvents(requisitionId: string, transaction?: Prisma.TransactionClient) {
     const database = transaction ?? this.prisma;
     const now = new Date();
-    const confirmed = await database.terrainEvent.findMany({
-      where: { requisitionId, validationStatus: "CONFIRMED" },
-      orderBy: [{ occurredAt: "desc" }, { createdAt: "desc" }],
-    });
-    const latest = confirmed.find((event) => event.occurredAt <= now) ?? null;
-    const nextScheduled = confirmed
-      .filter((e) => e.isScheduled && e.scheduledAt && e.scheduledAt >= now)
-      .sort((a, b) => (a.scheduledAt!.getTime() - b.scheduledAt!.getTime()))[0];
-
-    const judicial = confirmed.find((e) => JUDICIAL_TYPES.has(e.type));
-    const requisition = await database.requisition.findUnique({
-      where: { id: requisitionId },
-      include: {
-        legalCases: {
-          where: { deletedAt: null },
-          select: { caseNumber: true, currentStage: true, updatedAt: true },
-          orderBy: { updatedAt: "desc" },
+    const [latest, nextScheduled, judicial, requisition] = await Promise.all([
+      database.terrainEvent.findFirst({
+        where: { requisitionId, validationStatus: "CONFIRMED", occurredAt: { lte: now } },
+        orderBy: [{ occurredAt: "desc" }, { createdAt: "desc" }],
+      }),
+      database.terrainEvent.findFirst({
+        where: {
+          requisitionId,
+          validationStatus: "CONFIRMED",
+          isScheduled: true,
+          scheduledAt: { gte: now },
         },
-      },
-    });
+        orderBy: { scheduledAt: "asc" },
+      }),
+      database.terrainEvent.findFirst({
+        where: {
+          requisitionId,
+          validationStatus: "CONFIRMED",
+          type: { in: JUDICIAL_TYPES },
+        },
+        orderBy: [{ occurredAt: "desc" }, { createdAt: "desc" }],
+      }),
+      database.requisition.findUnique({
+        where: { id: requisitionId },
+        include: {
+          legalCases: {
+            where: { deletedAt: null },
+            select: { caseNumber: true, currentStage: true, updatedAt: true },
+            orderBy: { updatedAt: "desc" },
+          },
+        },
+      }),
+    ]);
     if (!requisition) return null;
 
     let judicialState = "Pas au tribunal";

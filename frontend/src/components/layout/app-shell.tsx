@@ -161,19 +161,22 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
       <aside
         className={cn(
-          "no-print fixed inset-y-0 left-0 z-50 flex flex-col bg-[var(--navy-950)] text-slate-300 transition-[width,transform]",
-          collapsed ? "lg:w-[72px]" : "lg:w-[232px]",
+          "no-print fixed inset-y-0 left-0 z-50 flex flex-col border-r border-white/6 bg-[linear-gradient(180deg,var(--navy-950),#0e1d30)] text-slate-300 shadow-[8px_0_28px_rgba(11,23,40,.08)] transition-[width,transform]",
+          collapsed ? "lg:w-[80px]" : "lg:w-[256px]",
           mobile
-            ? "w-[232px] translate-x-0"
-            : "w-[232px] -translate-x-full lg:translate-x-0",
+            ? "w-[272px] translate-x-0"
+            : "w-[272px] -translate-x-full lg:translate-x-0",
         )}
       >
         <div
           className={cn(
-            "flex h-16 items-center border-b border-white/8 px-4",
+            "flex h-[72px] items-center border-b border-white/8 px-5",
             collapsed ? "justify-center lg:px-0" : "gap-3",
           )}
         >
+          <span className="grid size-9 shrink-0 place-items-center rounded-[11px] border border-white/10 bg-white/[0.06] text-[11px] font-bold tracking-[0.08em] text-[var(--accent)] shadow-inner">
+            NF
+          </span>
           <div className="min-w-0">
             {!collapsed || mobile ? (
               <>
@@ -184,11 +187,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   Gestion foncière
                 </p>
               </>
-            ) : (
-              <p className="text-[11px] font-semibold tracking-wide text-[var(--accent)]">
-                NF
-              </p>
-            )}
+            ) : null}
           </div>
           <button
             className="ml-auto rounded-[var(--radius-md)] p-1.5 text-white/50 hover:bg-white/8 hover:text-white lg:hidden"
@@ -200,9 +199,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </div>
 
         <nav
-          className="scrollbar-thin flex-1 space-y-0.5 overflow-y-auto px-2.5 py-4"
+          className="scrollbar-thin flex-1 space-y-1 overflow-y-auto px-3 py-5"
           aria-label="Navigation principale"
         >
+          {(!collapsed || mobile) && (
+            <p className="mb-2 px-3 text-[10px] font-semibold uppercase tracking-[0.14em] text-white/30">
+              Navigation
+            </p>
+          )}
           {visibleNav.map(({ label, href, icon: Icon }) => {
             const isActive = active(href);
             return (
@@ -212,18 +216,18 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 key={`${label}-${href}`}
                 href={href}
                 className={cn(
-                  "relative flex h-9 items-center gap-2.5 rounded-[var(--radius-md)] px-2.5 text-[13px] transition-colors",
+                  "relative flex h-11 items-center gap-3 rounded-[var(--radius-md)] px-3 text-[13px] font-medium transition-all",
                   isActive
-                    ? "bg-white/8 text-white"
-                    : "text-white/55 hover:bg-white/[0.04] hover:text-white/90",
+                    ? "bg-white/[0.09] text-white shadow-[inset_0_0_0_1px_rgba(255,255,255,.035)]"
+                    : "text-white/55 hover:bg-white/[0.045] hover:text-white/90",
                 )}
               >
                 {isActive && (
-                  <span className="absolute left-0 top-1.5 bottom-1.5 w-[2px] rounded-full bg-[var(--accent)]" />
+                  <span className="absolute -left-0.5 top-2.5 bottom-2.5 w-[3px] rounded-full bg-[var(--accent)]" />
                 )}
                 <Icon
                   className={cn(
-                    "size-4 shrink-0",
+                    "size-[17px] shrink-0",
                     isActive ? "text-[var(--accent)]" : "",
                   )}
                 />
@@ -233,14 +237,29 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           })}
         </nav>
 
-        <div className="border-t border-white/8 p-2.5 space-y-0.5">
+        <div className="space-y-1 border-t border-white/8 p-3">
+          {(!collapsed || mobile) && (
+            <div className="mb-2 flex items-center gap-3 rounded-[var(--radius-md)] bg-white/[0.035] p-3">
+              <span className="grid size-9 shrink-0 place-items-center rounded-full bg-[var(--accent)] text-[11px] font-bold text-white">
+                {initials}
+              </span>
+              <span className="min-w-0">
+                <b className="block truncate text-[12px] font-semibold text-white/90">
+                  {userLabel}
+                </b>
+                <span className="block truncate text-[10px] text-white/40">
+                  {userRole}
+                </span>
+              </span>
+            </div>
+          )}
           {!isAdmin && (
             <Link
               href="/profil"
               onClick={() => setMobile(false)}
               title={collapsed ? "Mon profil" : undefined}
               className={cn(
-                "flex h-9 items-center gap-2.5 rounded-[var(--radius-md)] px-2.5 text-[13px]",
+                "flex h-10 items-center gap-2.5 rounded-[var(--radius-md)] px-3 text-[13px]",
                 active("/profil")
                   ? "bg-white/8 text-white"
                   : "text-white/55 hover:bg-white/[0.04] hover:text-white/90",
@@ -252,7 +271,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           )}
           <button
             onClick={() => setCollapsed(!collapsed)}
-            className="hidden h-9 w-full items-center gap-2.5 rounded-[var(--radius-md)] px-2.5 text-[12px] text-white/45 hover:bg-white/[0.04] hover:text-white/80 lg:flex"
+            className="hidden h-10 w-full items-center gap-2.5 rounded-[var(--radius-md)] px-3 text-[12px] text-white/45 hover:bg-white/[0.04] hover:text-white/80 lg:flex"
           >
             {collapsed ? (
               <PanelLeftOpen className="size-4" />
@@ -267,10 +286,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <div
         className={cn(
           "transition-[padding]",
-          collapsed ? "lg:pl-[72px]" : "lg:pl-[232px]",
+          collapsed ? "lg:pl-[80px]" : "lg:pl-[256px]",
         )}
       >
-        <header className="no-print sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-[var(--border)] bg-[var(--canvas)]/92 px-4 backdrop-blur-sm md:px-7">
+        <header className="no-print sticky top-0 z-30 flex h-16 items-center gap-3 border-b border-[var(--border)] bg-white/80 px-4 shadow-[0_1px_0_rgba(11,23,40,.02)] backdrop-blur-xl md:h-[72px] md:px-8">
           <button
             className="rounded-[var(--radius-md)] p-2 text-[var(--text-muted)] hover:bg-[var(--slate-100)] lg:hidden"
             onClick={() => setMobile(true)}
@@ -280,15 +299,18 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </button>
 
           <div className="min-w-0 flex-1">
-            <p className="truncate text-[15px] font-semibold text-[var(--navy-950)]">
+            <p className="truncate text-[15px] font-semibold tracking-[-0.01em] text-[var(--navy-950)]">
               {pageTitle(pathname, isAdmin)}
+            </p>
+            <p className="hidden text-[11px] text-[var(--text-faint)] sm:block">
+              Espace de gestion fonciÃ¨re
             </p>
           </div>
 
           {showSearch && (
             <button
               onClick={() => setSearch(true)}
-              className="hidden h-9 items-center gap-2 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface)] px-3 text-[13px] text-[var(--text-muted)] hover:border-[var(--slate-300)] sm:flex md:min-w-[200px]"
+              className="hidden h-10 items-center gap-2 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--surface-muted)] px-3 text-[13px] text-[var(--text-muted)] shadow-[var(--shadow-xs)] hover:border-[var(--slate-300)] hover:bg-white sm:flex md:min-w-[220px]"
             >
               <Search className="size-3.5" />
               <span className="truncate">Rechercher…</span>
@@ -313,7 +335,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               )}
             </Button>
             {notifs && (
-              <div className="absolute right-0 top-11 w-[min(92vw,360px)] overflow-hidden rounded-[var(--radius-lg)] border border-[var(--border)] bg-white shadow-[0_12px_40px_rgba(11,23,40,.12)]">
+              <div className="absolute right-0 top-12 w-[min(92vw,380px)] overflow-hidden rounded-[var(--radius-lg)] border border-[var(--border)] bg-white shadow-[var(--shadow-md)]">
                 <div className="flex items-center justify-between border-b border-[var(--border)] px-4 py-3">
                   <div>
                     <h3 className="text-sm font-semibold">Notifications</h3>
@@ -405,7 +427,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </div>
 
           <div className="group relative">
-            <button className="flex items-center gap-2 rounded-[var(--radius-md)] p-1 hover:bg-[var(--slate-100)]">
+            <button className="flex items-center gap-2 rounded-[var(--radius-md)] border border-transparent p-1 hover:border-[var(--border)] hover:bg-white">
               <span className="grid size-8 place-items-center rounded-full bg-[var(--navy-900)] text-[11px] font-semibold text-white">
                 {initials}
               </span>
@@ -419,7 +441,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               </span>
               <ChevronDown className="hidden size-3 text-[var(--text-faint)] xl:block" />
             </button>
-            <div className="invisible absolute right-0 top-11 w-48 rounded-[var(--radius-lg)] border border-[var(--border)] bg-white p-1 opacity-0 shadow-[0_12px_40px_rgba(11,23,40,.12)] transition group-focus-within:visible group-focus-within:opacity-100 group-hover:visible group-hover:opacity-100">
+            <div className="invisible absolute right-0 top-12 w-52 rounded-[var(--radius-lg)] border border-[var(--border)] bg-white p-1.5 opacity-0 shadow-[var(--shadow-md)] transition group-focus-within:visible group-focus-within:opacity-100 group-hover:visible group-hover:opacity-100">
               {!isAdmin && (
                 <Link
                   href="/profil"
@@ -440,7 +462,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </div>
         </header>
 
-        <main className="app-main page-enter mx-auto min-h-[calc(100vh-64px)] max-w-[1280px] p-5 md:px-8 md:py-7">
+        <main className="app-main page-enter mx-auto min-h-[calc(100vh-var(--topbar-h))] max-w-[1440px] px-4 py-6 sm:px-6 md:px-8 md:py-9 xl:px-10">
           {children}
         </main>
       </div>

@@ -42,6 +42,15 @@ describe("GitHub Models client", () => {
     expect(validateDocumentFacts(raw).draftDocumentId).toBe("d1");
   });
 
+  it("does not expose provider error bodies containing private document content", async () => {
+    const json = jest.fn().mockResolvedValue({ error: { message: "PRIVATE_DOCUMENT_CONTENT" } });
+    global.fetch = jest.fn().mockResolvedValue({ ok: false, status: 500, json }) as typeof fetch;
+    await expect(githubModelsChatCompletion({
+      baseUrl: "https://models.github.ai/inference", token: "test-token", model: "test-model", messages: [],
+    })).rejects.toThrow("(500)");
+    expect(json).not.toHaveBeenCalled();
+  });
+
   it("rejects invalid JSON", () => {
     expect(() => parseJsonContent("not json")).toThrow(DocumentAnalysisProviderError);
   });
