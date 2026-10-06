@@ -14,8 +14,8 @@ const database = decodeURIComponent(new URL(url).pathname.slice(1));
 if (/qa|test/i.test(database) || process.env.QA_DATABASE || new URL(url).searchParams.has("schema")) {
   throw new Error("Opération refusée sur une base QA/test ou un schéma personnalisé.");
 }
-if (!dryRun && (!password || password.length < 16 || Buffer.byteLength(password, "utf8") > 72)) {
-  throw new Error("PRIMARY_ADMIN_PASSWORD requis: 16 caractères minimum, 72 octets maximum.");
+if (!dryRun && (!password || password.length < 10 || Buffer.byteLength(password, "utf8") > 72)) {
+  throw new Error("PRIMARY_ADMIN_PASSWORD requis: 10 caractères minimum, 72 octets maximum.");
 }
 const prisma = new PrismaClient({ adapter: new PrismaPg({ connectionString: url }) });
 try {
